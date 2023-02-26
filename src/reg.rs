@@ -31,7 +31,7 @@ pub(crate) trait Reg {
 }
 
 macro_rules! impl_reg {
-    (ENUM_ONLY, $name:ident, { $($reg: ident),+ $(,)? }) => {
+    (ENUM_ONLY, $name:ident, { $($reg:ident),+ $(,)? }) => {
         /// General purpose register operands.
         #[allow(non_camel_case_types)]
         #[derive(Copy, Clone)]
@@ -49,7 +49,7 @@ macro_rules! impl_reg {
         }
     };
 
-    ($name:ident, $rexw: expr, { $($reg: ident),+ $(,)? }) => {
+    ($name:ident, $rexw:expr, { $($reg:ident),+ $(,)? }) => {
         impl_reg!(ENUM_ONLY, $name, { $( $reg, )+ });
 
         impl Reg for $name {
