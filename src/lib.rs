@@ -1,3 +1,5 @@
+pub mod prelude;
+
 mod imm;
 mod insn;
 mod reg;
@@ -6,8 +8,6 @@ use imm::Imm;
 pub use imm::{Imm16, Imm32, Imm64, Imm8};
 use reg::Reg;
 pub use reg::{Reg16, Reg32, Reg64, Reg8};
-
-use insn::Mov;
 
 pub enum MemOp {
     Indirect(Reg64),
@@ -67,13 +67,6 @@ impl Asm {
         } else {
             unimplemented!();
         }
-    }
-
-    pub fn mov<T, U>(&mut self, op1: T, op2: U)
-    where
-        Self: Mov<T, U>,
-    {
-        <Self as Mov<T, U>>::mov(self, op1, op2);
     }
 
     fn encode_rr<T: Reg>(&mut self, opc: u8, op1: T, op2: T)

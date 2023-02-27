@@ -1,6 +1,4 @@
-use juicebox_asm::Asm;
-use juicebox_asm::MemOp;
-use juicebox_asm::{Imm16, Imm32, Imm64, Imm8};
+use juicebox_asm::prelude::*;
 use juicebox_asm::{Reg16::*, Reg32::*, Reg64::*, Reg8::*};
 
 macro_rules! mov {
