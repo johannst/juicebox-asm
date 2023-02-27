@@ -1,0 +1,25 @@
+name: rustdoc
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Generate doc
+      run: |
+          cargo doc --no-deps
+          echo "<meta http-equiv=\"Refresh\" content=\"0; url='juicebox_asm/index.html'\"/>" > target/doc/index.html
+
+    - name: Upload doc to gh pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./target/doc
