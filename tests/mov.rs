@@ -1,5 +1,4 @@
-use juicebox_asm::prelude::*;
-use juicebox_asm::{Reg16::*, Reg32::*, Reg64::*, Reg8::*};
+use juicebox_asm::prelude::{Reg16::*, Reg32::*, Reg64::*, Reg8::*, *};
 
 macro_rules! mov {
     ($op1:expr, $op2:expr) => {{
