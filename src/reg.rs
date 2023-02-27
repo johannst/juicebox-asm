@@ -3,12 +3,17 @@ pub(crate) trait Reg {
     /// Get the raw x64 register code.
     fn idx(&self) -> u8;
 
-    /// Get the `REX.W` bit.
-    fn rexw(&self) -> u8;
+    /// Check if the registers needs the `REX.W` bit.
+    fn rexw(&self) -> bool;
+
+    /// Check if the register is an extended registers.
+    fn is_ext(&self) -> bool {
+        self.idx() > 7
+    }
 
     /// Check if the register requires a `REX` byte.
     fn need_rex(&self) -> bool {
-        self.idx() > 7 || self.rexw() > 0
+        self.is_ext() || self.rexw()
     }
 
     /// Check if the register requires a `SIB` byte if used as addressing operand.
@@ -58,20 +63,20 @@ macro_rules! impl_reg {
                 *self as u8
             }
 
-            /// Get the `REX.W` bit.
-            fn rexw(&self) -> u8 {
+            /// Check if the registers needs the `REX.W` bit.
+            fn rexw(&self) -> bool {
                 $rexw
             }
         }
     }
 }
 
-impl_reg!(Reg64, 1, { rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8,  r9,  r10,  r11,  r12,  r13,  r14,  r15  });
-impl_reg!(Reg32, 0, { eax, ecx, edx, ebx, esp, ebp, esi, edi, r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d });
-impl_reg!(Reg16, 0, { ax,  cx,  dx,  bx,  sp,  bp,  si,  di,  r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w });
+impl_reg!(Reg64, true,  { rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8,  r9,  r10,  r11,  r12,  r13,  r14,  r15  });
+impl_reg!(Reg32, false, { eax, ecx, edx, ebx, esp, ebp, esi, edi, r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d });
+impl_reg!(Reg16, false, { ax,  cx,  dx,  bx,  sp,  bp,  si,  di,  r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w });
 impl_reg!(ENUM_ONLY,
-          Reg8,     { al,  cl,  dl,  bl,  spl, bpl, sil, dil, r8l, r9l, r10l, r11l, r12l, r13l, r14l, r15l,
-                      ah,  ch,  dh,  bh });
+          Reg8,         { al,  cl,  dl,  bl,  spl, bpl, sil, dil, r8l, r9l, r10l, r11l, r12l, r13l, r14l, r15l,
+                          ah,  ch,  dh,  bh });
 
 impl Reg for Reg8 {
     /// Get the raw x64 register code.
@@ -85,9 +90,9 @@ impl Reg for Reg8 {
         }
     }
 
-    /// Get the `REX.W` bit.
-    fn rexw(&self) -> u8 {
-        0
+    /// Check if the registers needs the `REX.W` bit.
+    fn rexw(&self) -> bool {
+        false
     }
 
     /// Check whether the gp register needs a `REX` prefix
@@ -139,7 +144,7 @@ mod tests {
             assert_eq!(r.idx(), idx);
 
             // Check REX.W bit.
-            assert_eq!(r.rexw(), 0);
+            assert_eq!(r.rexw(), false);
 
             // Check need REX byte.
             let rex = match r {
@@ -191,7 +196,7 @@ mod tests {
             assert_eq!(r.idx(), idx);
 
             // Check REX.W bit.
-            assert_eq!(r.rexw(), 0);
+            assert_eq!(r.rexw(), false);
 
             // Check need REX byte.
             let rex = match r {
@@ -243,7 +248,7 @@ mod tests {
             assert_eq!(r.idx(), idx);
 
             // Check REX.W bit.
-            assert_eq!(r.rexw(), 0);
+            assert_eq!(r.rexw(), false);
 
             // Check need REX byte.
             let rex = match r {
@@ -295,7 +300,7 @@ mod tests {
             assert_eq!(r.idx(), idx);
 
             // Check REX.W bit.
-            assert_eq!(r.rexw(), 1);
+            assert_eq!(r.rexw(), true);
 
             // Check need REX byte.
             assert_eq!(r.need_rex(), true);

@@ -24,7 +24,8 @@ impl MemOp {
 }
 
 /// Encode the `REX` byte.
-const fn rex(w: u8, r: u8, x: u8, b: u8) -> u8 {
+const fn rex(w: bool, r: u8, x: u8, b: u8) -> u8 {
+    let w = if w { 1 } else { 0 };
     let r = (r >> 3) & 1;
     let x = (x >> 3) & 1;
     let b = (b >> 3) & 1;
@@ -227,7 +228,7 @@ trait EncodeMR<T: Reg> {
     }
 
     fn rex(op1: &MemOp, op2: T) -> Option<u8> {
-        if op1.base().need_rex() || op2.need_rex() {
+        if op2.need_rex() || (op1.base().is_ext()) {
             Some(rex(op2.rexw(), op2.idx(), 0, op1.base().idx()))
         } else {
             None
@@ -235,10 +236,18 @@ trait EncodeMR<T: Reg> {
     }
 }
 
+impl EncodeMR<Reg8> for Asm {}
+impl EncodeMR<Reg16> for Asm {
+    fn legacy_prefix() -> Option<u8> {
+        Some(0x66)
+    }
+}
 impl EncodeMR<Reg32> for Asm {}
 impl EncodeMR<Reg64> for Asm {}
 
 // -- Instruction implementations.
+
+// -- MOV : reg reg
 
 impl Mov<Reg64, Reg64> for Asm {
     fn mov(&mut self, op1: Reg64, op2: Reg64) {
@@ -264,6 +273,8 @@ impl Mov<Reg8, Reg8> for Asm {
     }
 }
 
+// -- MOV : mem reg
+
 impl Mov<MemOp, Reg64> for Asm {
     fn mov(&mut self, op1: MemOp, op2: Reg64) {
         self.encode_mr(0x89, op1, op2);
@@ -276,6 +287,20 @@ impl Mov<MemOp, Reg32> for Asm {
     }
 }
 
+impl Mov<MemOp, Reg16> for Asm {
+    fn mov(&mut self, op1: MemOp, op2: Reg16) {
+        self.encode_mr(0x89, op1, op2);
+    }
+}
+
+impl Mov<MemOp, Reg8> for Asm {
+    fn mov(&mut self, op1: MemOp, op2: Reg8) {
+        self.encode_mr(0x88, op1, op2);
+    }
+}
+
+// -- MOV : reg mem
+
 impl Mov<Reg64, MemOp> for Asm {
     fn mov(&mut self, op1: Reg64, op2: MemOp) {
         self.encode_rm(0x8b, op1, op2);
@@ -287,6 +312,20 @@ impl Mov<Reg32, MemOp> for Asm {
         self.encode_rm(0x8b, op1, op2);
     }
 }
+
+impl Mov<Reg16, MemOp> for Asm {
+    fn mov(&mut self, op1: Reg16, op2: MemOp) {
+        self.encode_rm(0x8b, op1, op2);
+    }
+}
+
+impl Mov<Reg8, MemOp> for Asm {
+    fn mov(&mut self, op1: Reg8, op2: MemOp) {
+        self.encode_rm(0x8a, op1, op2);
+    }
+}
+
+// -- MOV : reg imm
 
 impl Mov<Reg64, Imm64> for Asm {
     fn mov(&mut self, op1: Reg64, op2: Imm64) {
