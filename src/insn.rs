@@ -1,6 +1,7 @@
 mod add;
 mod dec;
 mod jmp;
+mod jnz;
 mod jz;
 mod mov;
 mod ret;
@@ -19,6 +20,11 @@ pub trait Dec<T> {
 pub trait Jmp<T> {
     /// Emit an unconditional jump instruction.
     fn jmp(&mut self, op1: T);
+}
+
+pub trait Jnz<T> {
+    /// Emit a conditional jump if not zero instruction (`ZF = 0`).
+    fn jnz(&mut self, op1: T);
 }
 
 pub trait Jz<T> {
