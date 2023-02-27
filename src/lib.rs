@@ -1,6 +1,9 @@
+mod imm;
 mod insn;
 mod reg;
 
+use imm::Imm;
+pub use imm::{Imm16, Imm32, Imm64, Imm8};
 use reg::Reg;
 pub use reg::{Reg16, Reg32, Reg64, Reg8};
 
@@ -92,6 +95,40 @@ impl Asm {
         self.emit(&[opc, modrm]);
     }
 
+    fn encode_oi<T: Reg, U: Imm>(&mut self, opc: u8, op1: T, op2: U)
+    where
+        Self: EncodeRI<T>,
+    {
+        let opc = opc + (op1.idx() & 0b111);
+        let prefix = <Self as EncodeRI<T>>::legacy_prefix();
+        let rex = <Self as EncodeRI<T>>::rex(op1);
+
+        self.emit_optional(&[prefix, rex]);
+        self.emit(&[opc]);
+        self.emit(&op2.bytes());
+    }
+
+    fn encode_ri<T: Reg, U: Imm>(&mut self, opc: u8, opc_ext: u8, op1: T, op2: U)
+    where
+        Self: EncodeRI<T>,
+    {
+        // MI operand encoding.
+        //   op1 -> modrm.rm
+        //   op2 -> modrm.reg
+        let modrm = modrm(
+            0b11,      /* mod */
+            opc_ext,   /* reg */
+            op1.idx(), /* rm */
+        );
+
+        let prefix = <Self as EncodeRI<T>>::legacy_prefix();
+        let rex = <Self as EncodeRI<T>>::rex(op1);
+
+        self.emit_optional(&[prefix, rex]);
+        self.emit(&[opc, modrm]);
+        self.emit(&op2.bytes());
+    }
+
     fn encode_mr<T: Reg>(&mut self, opc: u8, op1: MemOp, op2: T)
     where
         Self: EncodeMR<T>,
@@ -161,6 +198,29 @@ impl EncodeRR<Reg16> for Asm {
 }
 impl EncodeRR<Reg64> for Asm {}
 
+trait EncodeRI<T: Reg> {
+    fn legacy_prefix() -> Option<u8> {
+        None
+    }
+
+    fn rex(op1: T) -> Option<u8> {
+        if op1.need_rex() {
+            Some(rex(op1.rexw(), 0, 0, op1.idx()))
+        } else {
+            None
+        }
+    }
+}
+
+impl EncodeRI<Reg8> for Asm {}
+impl EncodeRI<Reg32> for Asm {}
+impl EncodeRI<Reg16> for Asm {
+    fn legacy_prefix() -> Option<u8> {
+        Some(0x66)
+    }
+}
+impl EncodeRI<Reg64> for Asm {}
+
 trait EncodeMR<T: Reg> {
     fn legacy_prefix() -> Option<u8> {
         None
@@ -225,5 +285,29 @@ impl Mov<Reg64, MemOp> for Asm {
 impl Mov<Reg32, MemOp> for Asm {
     fn mov(&mut self, op1: Reg32, op2: MemOp) {
         self.encode_rm(0x8b, op1, op2);
+    }
+}
+
+impl Mov<Reg64, Imm64> for Asm {
+    fn mov(&mut self, op1: Reg64, op2: Imm64) {
+        self.encode_oi(0xb8, op1, op2);
+    }
+}
+
+impl Mov<Reg32, Imm32> for Asm {
+    fn mov(&mut self, op1: Reg32, op2: Imm32) {
+        self.encode_oi(0xb8, op1, op2);
+    }
+}
+
+impl Mov<Reg16, Imm16> for Asm {
+    fn mov(&mut self, op1: Reg16, op2: Imm16) {
+        self.encode_oi(0xb8, op1, op2);
+    }
+}
+
+impl Mov<Reg8, Imm8> for Asm {
+    fn mov(&mut self, op1: Reg8, op2: Imm8) {
+        self.encode_oi(0xb0, op1, op2);
     }
 }
