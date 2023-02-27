@@ -107,8 +107,8 @@ impl Asm {
         Self: EncodeRI<T>,
     {
         // MI operand encoding.
-        //   op1 -> modrm.rm
-        //   op2 -> modrm.reg
+        //   op1           -> modrm.rm
+        //   opc extension -> modrm.reg
         let modrm = modrm(
             0b11,      /* mod */
             opc_ext,   /* reg */
@@ -121,6 +121,26 @@ impl Asm {
         self.emit_optional(&[prefix, rex]);
         self.emit(&[opc, modrm]);
         self.emit(op2.bytes());
+    }
+
+    fn encode_r<T: Reg>(&mut self, opc: u8, opc_ext: u8, op1: T)
+    where
+        Self: EncodeRI<T>,
+    {
+        // M operand encoding.
+        //   op1           -> modrm.rm
+        //   opc extension -> modrm.reg
+        let modrm = modrm(
+            0b11,      /* mod */
+            opc_ext,   /* reg */
+            op1.idx(), /* rm */
+        );
+
+        let prefix = <Self as EncodeRI<T>>::legacy_prefix();
+        let rex = <Self as EncodeRI<T>>::rex(op1);
+
+        self.emit_optional(&[prefix, rex]);
+        self.emit(&[opc, modrm]);
     }
 
     fn encode_mr<T: Reg>(&mut self, opc: u8, op1: MemOp, op2: T)
