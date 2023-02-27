@@ -1,5 +1,7 @@
 mod add;
 mod dec;
+mod jmp;
+mod jz;
 mod mov;
 mod ret;
 mod test;
@@ -10,6 +12,14 @@ pub trait Add<T, U> {
 
 pub trait Dec<T> {
     fn dec(&mut self, op1: T);
+}
+
+pub trait Jmp<T> {
+    fn jmp(&mut self, op1: T);
+}
+
+pub trait Jz<T> {
+    fn jz(&mut self, op1: T);
 }
 
 pub trait Mov<T, U> {

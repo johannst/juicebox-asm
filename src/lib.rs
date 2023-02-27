@@ -2,12 +2,13 @@ pub mod prelude;
 
 mod imm;
 mod insn;
+mod label;
 mod reg;
 
 use imm::Imm;
-pub use imm::{Imm16, Imm32, Imm64, Imm8};
+use label::Label;
 use reg::Reg;
-pub use reg::{Reg16, Reg32, Reg64, Reg8};
+use reg::{Reg16, Reg32, Reg64, Reg8};
 
 pub enum MemOp {
     Indirect(Reg64),
@@ -68,6 +69,35 @@ impl Asm {
             unimplemented!();
         }
     }
+
+    /// Bind the [Label] to the current location.
+    pub fn bind(&mut self, label: &mut Label) {
+        // Bind the label to the current offset.
+        label.bind(self.buf.len());
+
+        // Resolve any pending relocations for the label.
+        self.resolve(label);
+    }
+
+    /// If the [Label] is bound, patch any pending relocation.
+    pub fn resolve(&mut self, label: &mut Label) {
+        if let Some(loc) = label.location() {
+            let loc = i32::try_from(loc).expect("Label location did not fit into i32.");
+
+            // Resolve any pending relocations for the label.
+            for off in label.offsets_mut().drain() {
+                // Displacement is relative to the next instruction following the jump.
+                // We record the offset to patch at the first byte of the disp32 therefore we need
+                // to account for that in the disp computation.
+                let disp32 = loc - i32::try_from(off).expect("Label offset did not fit into i32") - 4 /* account for the disp32 */;
+
+                // Patch the relocation with the disp32.
+                self.emit_at(off, &disp32.to_ne_bytes());
+            }
+        }
+    }
+
+    // -- Encode utilities.
 
     fn encode_rr<T: Reg>(&mut self, opc: u8, op1: T, op2: T)
     where
@@ -184,6 +214,20 @@ impl Asm {
         //   op1 -> modrm.reg
         //   op2 -> modrm.rm
         self.encode_mr(opc, op2, op1);
+    }
+
+    fn encode_jmp_label(&mut self, opc: &[u8], op1: &mut Label) {
+        // Emit the opcode.
+        self.emit(opc);
+
+        // Record relocation offset starting at the first byte of the disp32.
+        op1.record_offset(self.buf.len());
+
+        // Emit a zeroed disp32, which serves as placeholder for the relocation.
+        self.emit(&[0u8; 4]);
+
+        // Resolve any pending relocations for the label.
+        self.resolve(op1);
     }
 }
 
