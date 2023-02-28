@@ -122,11 +122,11 @@ impl Asm {
 
     fn encode_oi<T: Reg, U: Imm>(&mut self, opc: u8, op1: T, op2: U)
     where
-        Self: EncodeRI<T>,
+        Self: EncodeR<T>,
     {
         let opc = opc + (op1.idx() & 0b111);
-        let prefix = <Self as EncodeRI<T>>::legacy_prefix();
-        let rex = <Self as EncodeRI<T>>::rex(op1);
+        let prefix = <Self as EncodeR<T>>::legacy_prefix();
+        let rex = <Self as EncodeR<T>>::rex(op1);
 
         self.emit_optional(&[prefix, rex]);
         self.emit(&[opc]);
@@ -135,7 +135,7 @@ impl Asm {
 
     fn encode_ri<T: Reg, U: Imm>(&mut self, opc: u8, opc_ext: u8, op1: T, op2: U)
     where
-        Self: EncodeRI<T>,
+        Self: EncodeR<T>,
     {
         // MI operand encoding.
         //   op1           -> modrm.rm
@@ -146,8 +146,8 @@ impl Asm {
             op1.idx(), /* rm */
         );
 
-        let prefix = <Self as EncodeRI<T>>::legacy_prefix();
-        let rex = <Self as EncodeRI<T>>::rex(op1);
+        let prefix = <Self as EncodeR<T>>::legacy_prefix();
+        let rex = <Self as EncodeR<T>>::rex(op1);
 
         self.emit_optional(&[prefix, rex]);
         self.emit(&[opc, modrm]);
@@ -156,7 +156,7 @@ impl Asm {
 
     fn encode_r<T: Reg>(&mut self, opc: u8, opc_ext: u8, op1: T)
     where
-        Self: EncodeRI<T>,
+        Self: EncodeR<T>,
     {
         // M operand encoding.
         //   op1           -> modrm.rm
@@ -167,8 +167,8 @@ impl Asm {
             op1.idx(), /* rm */
         );
 
-        let prefix = <Self as EncodeRI<T>>::legacy_prefix();
-        let rex = <Self as EncodeRI<T>>::rex(op1);
+        let prefix = <Self as EncodeR<T>>::legacy_prefix();
+        let rex = <Self as EncodeR<T>>::rex(op1);
 
         self.emit_optional(&[prefix, rex]);
         self.emit(&[opc, modrm]);
@@ -257,7 +257,7 @@ impl EncodeRR<Reg16> for Asm {
 }
 impl EncodeRR<Reg64> for Asm {}
 
-trait EncodeRI<T: Reg> {
+trait EncodeR<T: Reg> {
     fn legacy_prefix() -> Option<u8> {
         None
     }
@@ -271,14 +271,14 @@ trait EncodeRI<T: Reg> {
     }
 }
 
-impl EncodeRI<Reg8> for Asm {}
-impl EncodeRI<Reg32> for Asm {}
-impl EncodeRI<Reg16> for Asm {
+impl EncodeR<Reg8> for Asm {}
+impl EncodeR<Reg32> for Asm {}
+impl EncodeR<Reg16> for Asm {
     fn legacy_prefix() -> Option<u8> {
         Some(0x66)
     }
 }
-impl EncodeRI<Reg64> for Asm {}
+impl EncodeR<Reg64> for Asm {}
 
 trait EncodeMR<T: Reg> {
     fn legacy_prefix() -> Option<u8> {
