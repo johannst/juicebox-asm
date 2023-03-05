@@ -1,5 +1,5 @@
 use juicebox_asm::prelude::*;
-use juicebox_asm::rt::Runtime;
+use juicebox_asm::Runtime;
 
 const fn fib_rs(n: u64) -> u64 {
     match n {

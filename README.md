@@ -8,7 +8,7 @@ An `x64` jit assembler for learning purpose with the following two main goals:
 
 ```rust
 use juicebox_asm::prelude::{Reg32::*, *};
-use juicebox_asm::rt::Runtime;
+use juicebox_asm::Runtime;
 
 fn main() {
     let mut asm = Asm::new();

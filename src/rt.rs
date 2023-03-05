@@ -1,3 +1,5 @@
+//! A simple runtime which can be used to execute emitted instructions.
+
 use core::ffi::c_void;
 use nix::sys::mman::{mmap, munmap, MapFlags, ProtFlags};
 

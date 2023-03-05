@@ -1,3 +1,6 @@
+//! Definition of the lable type which can be used as jump target and can be bound to a location in
+//! the emitted code.
+
 use std::collections::HashSet;
 
 /// A label which is used as target for jump instructions.
@@ -35,7 +38,11 @@ impl Label {
         }
     }
 
-    /// Bind the label to the `location`.
+    /// Bind the label to the `location`, can only be bound once.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the lable is already bound.
     pub(crate) fn bind(&mut self, loc: usize) {
         // A label can only be bound once!
         assert!(!self.is_bound());
@@ -48,10 +55,13 @@ impl Label {
         self.offsets.insert(off);
     }
 
+    /// Get the location of the lable if already bound, `None` else.
     pub(crate) fn location(&self) -> Option<usize> {
         self.location
     }
 
+    /// Get the offsets which refer to the label. These are used to patch the jump instructions to
+    /// the label location.
     pub(crate) fn offsets_mut(&mut self) -> &mut HashSet<usize> {
         &mut self.offsets
     }

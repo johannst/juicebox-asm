@@ -1,3 +1,5 @@
+//! Trait definitions of various instructions.
+
 mod add;
 mod dec;
 mod jmp;

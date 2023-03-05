@@ -1,22 +1,104 @@
+//! A simple `x64` jit assembler with a minimal runtime to execute emitted code for fun.
+//!
+//! The following is an fibonacci example implementation.
+//! ```rust
+//! use juicebox_asm::prelude::*;
+//! use juicebox_asm::Runtime;
+//!
+//! const fn fib_rs(n: u64) -> u64 {
+//!     match n {
+//!         0 => 0,
+//!         1 => 1,
+//!         _ => fib_rs(n - 2) + fib_rs(n - 1),
+//!     }
+//! }
+//!
+//! fn main() {
+//!     let mut asm = Asm::new();
+//!
+//!     let mut lp = Label::new();
+//!     let mut end = Label::new();
+//!
+//!     // Reference implementation:
+//!     //
+//!     // int fib(int n) {
+//!     //   int tmp = 0;
+//!     //   int prv = 1;
+//!     //   int sum = 0;
+//!     // loop:
+//!     //   if (n == 0) goto end;
+//!     //   tmp = sum;
+//!     //   sum += prv;
+//!     //   prv = tmp;
+//!     //   --n;
+//!     //   goto loop;
+//!     // end:
+//!     //   return sum;
+//!     // }
+//!
+//!     // SystemV abi:
+//!     //   rdi -> first argument
+//!     //   rax -> return value
+//!     let n = Reg64::rdi;
+//!     let sum = Reg64::rax;
+//!
+//!     let tmp = Reg64::rcx;
+//!     let prv = Reg64::rbx;
+//!
+//!     asm.mov(tmp, Imm64::from(0));
+//!     asm.mov(prv, Imm64::from(1));
+//!     asm.mov(sum, Imm64::from(0));
+//!
+//!     asm.bind(&mut lp);
+//!     asm.test(n, n);
+//!     asm.jz(&mut end);
+//!     asm.mov(tmp, sum);
+//!     asm.add(sum, prv);
+//!     asm.mov(prv, tmp);
+//!     asm.dec(n);
+//!     asm.jmp(&mut lp);
+//!     asm.bind(&mut end);
+//!     asm.ret();
+//!
+//!     // Move code into executable page and get function pointer to it.
+//!     let rt = Runtime::new(&asm.into_code());
+//!     let fib = unsafe { rt.as_fn::<extern "C" fn(u64) -> u64>() };
+//!
+//!     for n in 0..15 {
+//!         let fib_jit = fib(n);
+//!         println!("fib({}) = {}", n, fib_jit);
+//!         assert_eq!(fib_jit, fib_rs(n));
+//!     }
+//! }
+//! ```
+
 pub mod prelude;
-pub mod rt;
 
 mod imm;
 mod insn;
 mod label;
 mod reg;
+mod rt;
+
+pub use imm::{Imm16, Imm32, Imm64, Imm8};
+pub use label::Label;
+pub use reg::{Reg16, Reg32, Reg64, Reg8};
+pub use rt::Runtime;
 
 use imm::Imm;
-use label::Label;
 use reg::Reg;
-use reg::{Reg16, Reg32, Reg64, Reg8};
 
+/// Type representing a memory operand.
 pub enum MemOp {
+    /// An indirect memory operand, eg `mov [rax], rcx`.
     Indirect(Reg64),
+
+    /// An indirect memory operand with additional displacement, eg `mov [rax + 0x10], rcx`.
     IndirectDisp(Reg64, i32),
 }
 
 impl MemOp {
+    /// Get the base address register of the memory operand.
     const fn base(&self) -> Reg64 {
         match self {
             MemOp::Indirect(base) => *base,
@@ -39,30 +121,41 @@ const fn modrm(mod_: u8, reg: u8, rm: u8) -> u8 {
     ((mod_ & 0b11) << 6) | ((reg & 0b111) << 3) | (rm & 0b111)
 }
 
+/// `x64` jit assembler.
 pub struct Asm {
     buf: Vec<u8>,
 }
 
 impl Asm {
+    /// Create a new `x64` jit assembler.
     pub fn new() -> Asm {
+        // Some random default capacity.
         let buf = Vec::with_capacity(1024);
         Asm { buf }
     }
 
+    /// Consume the assembler and get the emitted code.
     pub fn into_code(self) -> Vec<u8> {
         self.buf
     }
 
+    /// Emit a slice of bytes.
     fn emit(&mut self, bytes: &[u8]) {
         self.buf.extend_from_slice(bytes);
     }
 
+    /// Emit a slice of optional bytes.
     fn emit_optional(&mut self, bytes: &[Option<u8>]) {
         for byte in bytes.iter().filter_map(|&b| b) {
             self.buf.push(byte);
         }
     }
 
+    /// Emit a slice of bytes at `pos`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if [pos..pos+len] indexes out of bound of the underlying code buffer.
     fn emit_at(&mut self, pos: usize, bytes: &[u8]) {
         if let Some(buf) = self.buf.get_mut(pos..pos + bytes.len()) {
             buf.copy_from_slice(bytes);
@@ -83,6 +176,7 @@ impl Asm {
     /// If the [Label] is bound, patch any pending relocation.
     pub fn resolve(&mut self, label: &mut Label) {
         if let Some(loc) = label.location() {
+            // For now we only support disp32 as label location.
             let loc = i32::try_from(loc).expect("Label location did not fit into i32.");
 
             // Resolve any pending relocations for the label.
@@ -100,6 +194,7 @@ impl Asm {
 
     // -- Encode utilities.
 
+    /// Encode an register-register instruction.
     fn encode_rr<T: Reg>(&mut self, opc: u8, op1: T, op2: T)
     where
         Self: EncodeRR<T>,
@@ -120,6 +215,8 @@ impl Asm {
         self.emit(&[opc, modrm]);
     }
 
+    /// Encode an offset-immediate instruction.
+    /// Register idx is encoded in the opcode.
     fn encode_oi<T: Reg, U: Imm>(&mut self, opc: u8, op1: T, op2: U)
     where
         Self: EncodeR<T>,
@@ -133,6 +230,7 @@ impl Asm {
         self.emit(op2.bytes());
     }
 
+    /// Encode a register-immediate instruction.
     fn encode_ri<T: Reg, U: Imm>(&mut self, opc: u8, opc_ext: u8, op1: T, op2: U)
     where
         Self: EncodeR<T>,
@@ -154,6 +252,7 @@ impl Asm {
         self.emit(op2.bytes());
     }
 
+    /// Encode a register instruction.
     fn encode_r<T: Reg>(&mut self, opc: u8, opc_ext: u8, op1: T)
     where
         Self: EncodeR<T>,
@@ -174,6 +273,7 @@ impl Asm {
         self.emit(&[opc, modrm]);
     }
 
+    /// Encode a memory-register instruction.
     fn encode_mr<T: Reg>(&mut self, opc: u8, op1: MemOp, op2: T)
     where
         Self: EncodeMR<T>,
@@ -207,6 +307,7 @@ impl Asm {
         }
     }
 
+    /// Encode a register-memory instruction.
     fn encode_rm<T: Reg>(&mut self, opc: u8, op1: T, op2: MemOp)
     where
         Self: EncodeMR<T>,
@@ -217,6 +318,7 @@ impl Asm {
         self.encode_mr(opc, op2, op1);
     }
 
+    /// Encode a jump to label instruction.
     fn encode_jmp_label(&mut self, opc: &[u8], op1: &mut Label) {
         // Emit the opcode.
         self.emit(opc);
@@ -225,6 +327,7 @@ impl Asm {
         op1.record_offset(self.buf.len());
 
         // Emit a zeroed disp32, which serves as placeholder for the relocation.
+        // We currently only support disp32 jump targets.
         self.emit(&[0u8; 4]);
 
         // Resolve any pending relocations for the label.
@@ -234,6 +337,7 @@ impl Asm {
 
 // -- Encoder helper.
 
+/// Encode helper for register-register instructions.
 trait EncodeRR<T: Reg> {
     fn legacy_prefix() -> Option<u8> {
         None
@@ -257,6 +361,7 @@ impl EncodeRR<Reg16> for Asm {
 }
 impl EncodeRR<Reg64> for Asm {}
 
+/// Encode helper for register instructions.
 trait EncodeR<T: Reg> {
     fn legacy_prefix() -> Option<u8> {
         None
@@ -280,6 +385,7 @@ impl EncodeR<Reg16> for Asm {
 }
 impl EncodeR<Reg64> for Asm {}
 
+/// Encode helper for memory-register instructions.
 trait EncodeMR<T: Reg> {
     fn legacy_prefix() -> Option<u8> {
         None

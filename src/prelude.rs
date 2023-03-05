@@ -1,3 +1,5 @@
+//! Crate prelude, which can be used to import the most important types at once.
+
 pub use crate::Asm;
 pub use crate::MemOp;
 
