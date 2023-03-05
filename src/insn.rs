@@ -6,6 +6,7 @@ mod jmp;
 mod jnz;
 mod jz;
 mod mov;
+mod nop;
 mod ret;
 mod test;
 
