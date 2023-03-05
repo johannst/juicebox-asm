@@ -1,6 +1,7 @@
 //! Trait definitions of various instructions.
 
 mod add;
+mod call;
 mod dec;
 mod jmp;
 mod jnz;
@@ -13,6 +14,11 @@ mod test;
 pub trait Add<T, U> {
     /// Emit an add instruction.
     fn add(&mut self, op1: T, op2: U);
+}
+
+pub trait Call<T> {
+    /// Emit a call instruction.
+    fn call(&mut self, op1: T);
 }
 
 pub trait Dec<T> {

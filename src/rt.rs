@@ -11,7 +11,7 @@ pub struct Runtime {
 
 impl Runtime {
     /// Create a new [Runtime].
-    pub fn new(code: &[u8]) -> Runtime {
+    pub fn new(code: impl AsRef<[u8]>) -> Runtime {
         // Allocate a single page.
         let len = core::num::NonZeroUsize::new(4096).unwrap();
         let buf = unsafe {
@@ -27,6 +27,7 @@ impl Runtime {
         };
         {
             // Copy over code.
+            let code = code.as_ref();
             assert!(code.len() < len.get());
             unsafe { std::ptr::copy_nonoverlapping(code.as_ptr(), buf.cast(), len.get()) };
         }
