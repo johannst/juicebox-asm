@@ -70,7 +70,20 @@
 <a href="#70" id="70">70</a>
 <a href="#71" id="71">71</a>
 <a href="#72" id="72">72</a>
-</pre><pre class="rust"><code><span class="kw">use </span>std::collections::HashSet;
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+</pre><pre class="rust"><code><span class="doccomment">//! Definition of the lable type which can be used as jump target and can be bound to a location in
+//! the emitted code.
+
+</span><span class="kw">use </span>std::collections::HashSet;
 
 <span class="doccomment">/// A label which is used as target for jump instructions.
 ///
@@ -107,7 +120,11 @@
         }
     }
 
-    <span class="doccomment">/// Bind the label to the `location`.
+    <span class="doccomment">/// Bind the label to the `location`, can only be bound once.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the lable is already bound.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>bind(<span class="kw-2">&amp;mut </span><span class="self">self</span>, loc: usize) {
         <span class="comment">// A label can only be bound once!
         </span><span class="macro">assert!</span>(!<span class="self">self</span>.is_bound());
@@ -120,11 +137,14 @@
         <span class="self">self</span>.offsets.insert(off);
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>location(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+    <span class="doccomment">/// Get the location of the lable if already bound, `None` else.
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>location(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
         <span class="self">self</span>.location
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>offsets_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>HashSet&lt;usize&gt; {
+    <span class="doccomment">/// Get the offsets which refer to the label. These are used to patch the jump instructions to
+    /// the label location.
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>offsets_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>HashSet&lt;usize&gt; {
         <span class="kw-2">&amp;mut </span><span class="self">self</span>.offsets
     }
 

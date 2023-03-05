@@ -49,7 +49,11 @@
 <a href="#49" id="49">49</a>
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
-</pre><pre class="rust"><code><span class="kw">use </span>core::ffi::c_void;
+<a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+</pre><pre class="rust"><code><span class="doccomment">//! A simple runtime which can be used to execute emitted instructions.
+
+</span><span class="kw">use </span>core::ffi::c_void;
 <span class="kw">use </span>nix::sys::mman::{mmap, munmap, MapFlags, ProtFlags};
 
 <span class="doccomment">/// A simple `mmap`ed runtime with executable pages.

@@ -321,7 +321,20 @@
 <a href="#321" id="321">321</a>
 <a href="#322" id="322">322</a>
 <a href="#323" id="323">323</a>
-</pre><pre class="rust"><code><span class="doccomment">/// Trait to interact with register operands.
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+</pre><pre class="rust"><code><span class="doccomment">//! Definition of registers which are used as input operands for various instructions.
+
+/// Trait to interact with register operands.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>Reg {
     <span class="doccomment">/// Get the raw x64 register code.
     </span><span class="kw">fn </span>idx(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8;
@@ -358,10 +371,10 @@
     </span>}
 }
 
-<span class="macro">macro_rules! </span>impl_reg {
-    (ENUM_ONLY, <span class="macro-nonterminal">$name</span>:ident, { $(<span class="macro-nonterminal">$reg</span>:ident),+ $(,)<span class="question-mark">? </span>}) =&gt; {
-        <span class="doccomment">/// General purpose register operands.
-        </span><span class="attr">#[allow(non_camel_case_types)]
+<span class="macro">macro_rules! </span>enum_reg {
+    (<span class="attr">#[<span class="macro-nonterminal">$doc</span>:meta]  </span><span class="macro-nonterminal">$name</span>:ident, { $(<span class="macro-nonterminal">$reg</span>:ident),+ $(,)<span class="question-mark">? </span>}) =&gt; {
+        <span class="attr">#[<span class="macro-nonterminal">$doc</span>]
+        #[allow(non_camel_case_types)]
         #[derive(Copy, Clone)]
         #[repr(u8)]
         </span><span class="kw">pub enum </span><span class="macro-nonterminal">$name </span>{
@@ -376,9 +389,11 @@
             }
         }
     };
+}
 
-    (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$rexw</span>:expr, { $(<span class="macro-nonterminal">$reg</span>:ident),+ $(,)<span class="question-mark">? </span>}) =&gt; {
-        <span class="macro">impl_reg!</span>(ENUM_ONLY, <span class="macro-nonterminal">$name</span>, { $( <span class="macro-nonterminal">$reg</span>, )+ });
+<span class="macro">macro_rules! </span>impl_reg {
+    (<span class="attr">#[<span class="macro-nonterminal">$doc</span>:meta] </span><span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$rexw</span>:expr, { $(<span class="macro-nonterminal">$reg</span>:ident),+ $(,)<span class="question-mark">? </span>}) =&gt; {
+        <span class="macro">enum_reg!</span>(<span class="attr">#[<span class="macro-nonterminal">$doc</span>] </span><span class="macro-nonterminal">$name</span>, { $( <span class="macro-nonterminal">$reg</span>, )+ });
 
         <span class="kw">impl </span>Reg <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
             <span class="doccomment">/// Get the raw x64 register code.
@@ -394,11 +409,18 @@
     }
 }
 
-<span class="macro">impl_reg!</span>(Reg64, <span class="bool-val">true</span>,  { rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8,  r9,  r10,  r11,  r12,  r13,  r14,  r15  });
-<span class="macro">impl_reg!</span>(Reg32, <span class="bool-val">false</span>, { eax, ecx, edx, ebx, esp, ebp, esi, edi, r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d });
-<span class="macro">impl_reg!</span>(Reg16, <span class="bool-val">false</span>, { ax,  cx,  dx,  bx,  sp,  bp,  si,  di,  r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w });
-<span class="macro">impl_reg!</span>(ENUM_ONLY,
-          Reg8,         { al,  cl,  dl,  bl,  spl, bpl, sil, dil, r8l, r9l, r10l, r11l, r12l, r13l, r14l, r15l,
+<span class="macro">impl_reg!</span>(
+    <span class="doccomment">/// Definition of 64 bit registers.
+    </span>Reg64, <span class="bool-val">true</span>,  { rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8,  r9,  r10,  r11,  r12,  r13,  r14,  r15  });
+<span class="macro">impl_reg!</span>(
+    <span class="doccomment">/// Definition of 32 bit registers.
+    </span>Reg32, <span class="bool-val">false</span>, { eax, ecx, edx, ebx, esp, ebp, esi, edi, r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d });
+<span class="macro">impl_reg!</span>(
+    <span class="doccomment">/// Definition of 16 bit registers.
+    </span>Reg16, <span class="bool-val">false</span>, { ax,  cx,  dx,  bx,  sp,  bp,  si,  di,  r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w });
+<span class="macro">enum_reg!</span>(
+    <span class="doccomment">/// Definition of 8 bit registers.
+    </span>Reg8,         { al,  cl,  dl,  bl,  spl, bpl, sil, dil, r8l, r9l, r10l, r11l, r12l, r13l, r14l, r15l,
                           ah,  ch,  dh,  bh });
 
 <span class="kw">impl </span>Reg <span class="kw">for </span>Reg8 {
