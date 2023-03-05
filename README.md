@@ -7,8 +7,6 @@
 [doc-html]: https://johannst.github.io/juicebox-asm
 [doc-badge]: https://img.shields.io/badge/juicebox__asm-rustdoc-blue.svg?style=flat&logo=rust
 
-[![tests]()]()
-
 An `x64` jit assembler for learning purpose with the following two main goals:
 - Learn about x64 instruction encoding.
 - Learn how to use the rust type system to disallow invalid operands.
