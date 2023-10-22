@@ -23,7 +23,7 @@ fn main() {
 
     // Reference implementation
     //   int ret = 0;
-    //   int n   = 0;
+    //   int n   = 42;
     //
     // loop:
     //   ret += n;
