@@ -1,7 +1,7 @@
 //! A simple runtime which can be used to execute emitted instructions.
 
 use core::ffi::c_void;
-use nix::sys::mman::{mmap, munmap, MapFlags, ProtFlags};
+use nix::sys::mman::{mmap, mprotect, munmap, MapFlags, ProtFlags};
 
 /// A simple `mmap`ed runtime with executable pages.
 pub struct Runtime {
@@ -18,7 +18,7 @@ impl Runtime {
             mmap(
                 None,
                 len,
-                ProtFlags::PROT_WRITE | ProtFlags::PROT_READ | ProtFlags::PROT_EXEC,
+                ProtFlags::PROT_WRITE,
                 MapFlags::MAP_PRIVATE | MapFlags::MAP_ANONYMOUS,
                 0, /* fd */
                 0, /* off */
@@ -30,6 +30,11 @@ impl Runtime {
             let code = code.as_ref();
             assert!(code.len() < len.get());
             unsafe { std::ptr::copy_nonoverlapping(code.as_ptr(), buf.cast(), len.get()) };
+        }
+        unsafe {
+            // Remove write permissions from code buffer and allow to read-execute from it.
+            mprotect(buf, len.get(), ProtFlags::PROT_READ | ProtFlags::PROT_EXEC)
+                .expect("Failed to RX mprotect Runtime code buffer");
         }
 
         Runtime {
