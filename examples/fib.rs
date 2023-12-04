@@ -62,8 +62,8 @@ fn main() {
     std::fs::write("jit.asm", &code).unwrap();
 
     // Move code into executable page and get function pointer to it.
-    let rt = Runtime::new(&code);
-    let fib = unsafe { rt.as_fn::<extern "C" fn(u64) -> u64>() };
+    let mut rt = Runtime::new();
+    let fib = unsafe { rt.add_code::<extern "C" fn(u64) -> u64>(code) };
 
     for n in 0..15 {
         let fib_jit = fib(n);

@@ -22,8 +22,8 @@ fn main() {
     let code = asm.into_code();
     std::fs::write("jit.asm", &code).unwrap();
 
-    let rt = Runtime::new(&code);
-    let add42 = unsafe { rt.as_fn::<extern "C" fn(u32) -> u32>() };
+    let mut rt = Runtime::new();
+    let add42 = unsafe { rt.add_code::<extern "C" fn(u32) -> u32>(code) };
 
     let res = add42(5);
     assert_eq!(res, 47);
