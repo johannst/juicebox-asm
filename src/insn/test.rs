@@ -11,3 +11,9 @@ impl Test<Reg32, Reg32> for Asm {
         self.encode_rr(0x85, op1, op2);
     }
 }
+
+impl Test<MemOp, Imm16> for Asm {
+    fn test(&mut self, op1: MemOp, op2: Imm16) {
+        self.encode_mi(0xf7, 0, op1, op2);
+    }
+}

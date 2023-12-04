@@ -2,6 +2,7 @@
 
 mod add;
 mod call;
+mod cmp;
 mod dec;
 mod jmp;
 mod jnz;
@@ -19,6 +20,11 @@ pub trait Add<T, U> {
 pub trait Call<T> {
     /// Emit a call instruction.
     fn call(&mut self, op1: T);
+}
+
+pub trait Cmp<T, U> {
+    /// Emit a compare call instruction.
+    fn cmp(&mut self, op1: T, op2: U);
 }
 
 pub trait Dec<T> {

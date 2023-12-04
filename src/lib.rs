@@ -273,6 +273,42 @@ impl Asm {
         self.emit(&[opc, modrm]);
     }
 
+    /// Encode a memory-immediate instruction.
+    fn encode_mi<T: Imm>(&mut self, opc: u8, opc_ext: u8, op1: MemOp, op2: T)
+    where
+        Self: EncodeMI<T>,
+    {
+        // MI operand encoding.
+        //   op1 -> modrm.rm
+        //   op2 -> imm
+        let mode = match op1 {
+            MemOp::Indirect(..) => {
+                assert!(!op1.base().need_sib() && !op1.base().is_pc_rel());
+                0b00
+            }
+            MemOp::IndirectDisp(..) => {
+                assert!(!op1.base().need_sib());
+                0b10
+            }
+        };
+
+        let modrm = modrm(
+            mode,             /* mode */
+            opc_ext,          /* reg */
+            op1.base().idx(), /* rm */
+        );
+
+        let prefix = <Self as EncodeMI<T>>::legacy_prefix();
+        let rex = <Self as EncodeMI<T>>::rex(&op1);
+
+        self.emit_optional(&[prefix, rex]);
+        self.emit(&[opc, modrm]);
+        if let MemOp::IndirectDisp(_, disp) = op1 {
+            self.emit(&disp.to_ne_bytes());
+        }
+        self.emit(op2.bytes());
+    }
+
     /// Encode a memory-register instruction.
     fn encode_mr<T: Reg>(&mut self, opc: u8, op1: MemOp, op2: T)
     where
@@ -408,3 +444,26 @@ impl EncodeMR<Reg16> for Asm {
 }
 impl EncodeMR<Reg32> for Asm {}
 impl EncodeMR<Reg64> for Asm {}
+
+/// Encode helper for memory-immediate instructions.
+trait EncodeMI<T: Imm> {
+    fn legacy_prefix() -> Option<u8> {
+        None
+    }
+
+    fn rex(op1: &MemOp) -> Option<u8> {
+        if op1.base().is_ext() {
+            Some(rex(false, 0, 0, op1.base().idx()))
+        } else {
+            None
+        }
+    }
+}
+
+impl EncodeMI<Imm8> for Asm {}
+impl EncodeMI<Imm16> for Asm {
+    fn legacy_prefix() -> Option<u8> {
+        Some(0x66)
+    }
+}
+impl EncodeMI<Imm32> for Asm {}

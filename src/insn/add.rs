@@ -11,3 +11,15 @@ impl Add<Reg32, Reg32> for Asm {
         self.encode_rr(0x01, op1, op2);
     }
 }
+
+impl Add<MemOp, Reg16> for Asm {
+    fn add(&mut self, op1: MemOp, op2: Reg16) {
+        self.encode_mr(0x01, op1, op2);
+    }
+}
+
+impl Add<MemOp, Imm16> for Asm {
+    fn add(&mut self, op1: MemOp, op2: Imm16) {
+        self.encode_mi(0x81, 0, op1, op2);
+    }
+}

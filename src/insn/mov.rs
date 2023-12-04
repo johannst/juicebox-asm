@@ -103,3 +103,11 @@ impl Mov<Reg8, Imm8> for Asm {
         self.encode_oi(0xb0, op1, op2);
     }
 }
+
+// -- MOV : mem imm
+
+impl Mov<MemOp, Imm16> for Asm {
+    fn mov(&mut self, op1: MemOp, op2: Imm16) {
+        self.encode_mi(0xc7, 0, op1, op2);
+    }
+}
