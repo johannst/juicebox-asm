@@ -26,3 +26,6 @@ jobs:
 
     - name: Run tests
       run: cargo test --verbose
+
+    - name: Run example tests
+      run: cargo test --examples --verbose

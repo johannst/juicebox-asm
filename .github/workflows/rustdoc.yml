@@ -16,7 +16,7 @@ jobs:
 
     - name: Generate doc
       run: |
-          cargo doc --no-deps
+          cargo doc --no-deps --examples
           echo "<meta http-equiv=\"Refresh\" content=\"0; url='juicebox_asm/index.html'\"/>" > target/doc/index.html
 
     - name: Upload doc to gh pages
