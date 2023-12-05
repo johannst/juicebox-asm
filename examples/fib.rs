@@ -1,3 +1,8 @@
+//! Fibonacci example.
+//!
+//! Jit compile a function at runtime (generate native host code) to compute the fibonacci sequence
+//! to demonstrate the [`juicebox_asm`] crate.
+
 use juicebox_asm::prelude::*;
 use juicebox_asm::Runtime;
 

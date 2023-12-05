@@ -1,3 +1,11 @@
+//! Add example.
+//!
+//! Jit compile a function at runtime (generate native host code) which calls a function defined in
+//! the example based on the SystemV abi to demonstrate the [`juicebox_asm`] crate.
+
+#[cfg(not(any(target_arch = "x86_64", target_os = "linux")))]
+compile_error!("Only supported on x86_64 with SystemV abi");
+
 use juicebox_asm::prelude::*;
 use juicebox_asm::Runtime;
 use Reg64::*;
