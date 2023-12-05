@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["juicebox_asm"];
+window.ALL_CRATES = ["add","fib","juicebox_asm","tiny_vm"];
