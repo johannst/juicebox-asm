@@ -55,7 +55,7 @@ The [`examples/`](examples/) folder provides additional examples:
 
 - [`fib.rs`](examples/fib.rs) jit compile a function to compute the `fibonacci` sequence.
 - [`add.rs`](examples/add.rs) jit compile a function calling another function compiled into the example.
-- [`tiny_vm.rs`](examples/tiny_vm.rs.rs) define a minimal `virtual machine (VM)` which demonstrates a simple jit compiler for translating VM guest software.
+- [`tiny_vm.rs`](examples/tiny_vm.rs) define a minimal `virtual machine (VM)` which demonstrates a simple jit compiler for translating VM guest software.
 
 ## License
 This project is licensed under the [MIT](LICENSE) license.
