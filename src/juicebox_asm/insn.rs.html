@@ -59,6 +59,18 @@
 <a href="#59" id="59">59</a>
 <a href="#60" id="60">60</a>
 <a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Trait definitions of various instructions.
 
 </span><span class="kw">mod </span>add;
@@ -73,47 +85,59 @@
 <span class="kw">mod </span>ret;
 <span class="kw">mod </span>test;
 
-<span class="kw">pub trait </span>Add&lt;T, U&gt; {
+<span class="doccomment">/// Trait for [`add`](https://www.felixcloutier.com/x86/add) instruction kinds.
+</span><span class="kw">pub trait </span>Add&lt;T, U&gt; {
     <span class="doccomment">/// Emit an add instruction.
     </span><span class="kw">fn </span>add(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T, op2: U);
 }
 
-<span class="kw">pub trait </span>Call&lt;T&gt; {
+<span class="doccomment">/// Trait for [`call`](https://www.felixcloutier.com/x86/call) instruction kinds.
+</span><span class="kw">pub trait </span>Call&lt;T&gt; {
     <span class="doccomment">/// Emit a call instruction.
     </span><span class="kw">fn </span>call(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
 }
 
-<span class="kw">pub trait </span>Cmp&lt;T, U&gt; {
-    <span class="doccomment">/// Emit a compare call instruction.
+<span class="doccomment">/// Trait for [`cmp`](https://www.felixcloutier.com/x86/cmp) instruction kinds.
+</span><span class="kw">pub trait </span>Cmp&lt;T, U&gt; {
+    <span class="doccomment">/// Emit a compare instruction.
+    ///
+    /// Computes `op2 - op1` and sets the status flags in the same way as the `sub` instruction,
+    /// the result is discarded.
     </span><span class="kw">fn </span>cmp(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T, op2: U);
 }
 
-<span class="kw">pub trait </span>Dec&lt;T&gt; {
+<span class="doccomment">/// Trait for [`dec`](https://www.felixcloutier.com/x86/dec) instruction kinds.
+</span><span class="kw">pub trait </span>Dec&lt;T&gt; {
     <span class="doccomment">/// Emit a decrement instruction.
     </span><span class="kw">fn </span>dec(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
 }
 
-<span class="kw">pub trait </span>Jmp&lt;T&gt; {
+<span class="doccomment">/// Trait for [`jmp`](https://www.felixcloutier.com/x86/jmp) instruction kinds.
+</span><span class="kw">pub trait </span>Jmp&lt;T&gt; {
     <span class="doccomment">/// Emit an unconditional jump instruction.
     </span><span class="kw">fn </span>jmp(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
 }
 
-<span class="kw">pub trait </span>Jnz&lt;T&gt; {
+<span class="doccomment">/// Trait for [`jnz`](https://www.felixcloutier.com/x86/jcc) instruction kinds.
+</span><span class="kw">pub trait </span>Jnz&lt;T&gt; {
     <span class="doccomment">/// Emit a conditional jump if not zero instruction (`ZF = 0`).
     </span><span class="kw">fn </span>jnz(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
 }
 
-<span class="kw">pub trait </span>Jz&lt;T&gt; {
+<span class="doccomment">/// Trait for [`jz`](https://www.felixcloutier.com/x86/jcc) instruction kinds.
+</span><span class="kw">pub trait </span>Jz&lt;T&gt; {
     <span class="doccomment">/// Emit a conditional jump if zero instruction (`ZF = 1`).
     </span><span class="kw">fn </span>jz(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
 }
 
-<span class="kw">pub trait </span>Mov&lt;T, U&gt; {
+<span class="doccomment">/// Trait for [`mov`](https://www.felixcloutier.com/x86/mov) instruction kinds.
+</span><span class="kw">pub trait </span>Mov&lt;T, U&gt; {
     <span class="doccomment">/// Emit an move instruction.
     </span><span class="kw">fn </span>mov(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T, op2: U);
 }
 
-<span class="kw">pub trait </span>Test&lt;T, U&gt; {
+<span class="doccomment">/// Trait for [`test`](https://www.felixcloutier.com/x86/test) instruction kinds.
+</span><span class="kw">pub trait </span>Test&lt;T, U&gt; {
     <span class="doccomment">/// Emit a logical compare instruction.
     ///
     /// Computes the bit-wise logical AND of first operand and the second operand and sets the

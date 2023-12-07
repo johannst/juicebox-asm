@@ -80,6 +80,7 @@
 <a href="#80" id="80">80</a>
 <a href="#81" id="81">81</a>
 <a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Definition of the lable type which can be used as jump target and can be bound to a location in
 //! the emitted code.
 
@@ -88,7 +89,8 @@
 <span class="doccomment">/// A label which is used as target for jump instructions.
 ///
 /// ```rust
-/// use juicebox_asm::prelude::*;
+/// use juicebox_asm::{Asm, Label, Reg64};
+/// use juicebox_asm::insn::{Mov, Jmp};
 ///
 /// let mut lbl = Label::new();
 /// let mut asm = Asm::new();

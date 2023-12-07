@@ -44,9 +44,9 @@
 </span><span class="attr">#[cfg(not(any(target_arch = <span class="string">&quot;x86_64&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>)))]
 </span><span class="macro">compile_error!</span>(<span class="string">&quot;Only supported on x86_64 with SystemV abi&quot;</span>);
 
-<span class="kw">use </span>juicebox_asm::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>juicebox_asm::insn::<span class="kw-2">*</span>;
 <span class="kw">use </span>juicebox_asm::Runtime;
-<span class="kw">use </span>Reg64::<span class="kw-2">*</span>;
+<span class="kw">use </span>juicebox_asm::{Asm, Imm64, Reg64::<span class="kw-2">*</span>};
 
 <span class="kw">extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>add(a: u32, b: u32) -&gt; u32 {
     a + b
@@ -59,9 +59,9 @@
     //   rdi -&gt; first argument
     //   rsi -&gt; second argument
     //   rax -&gt; return value
-    //
+
     </span>asm.mov(rsi, Imm64::from(<span class="number">42</span>));
-    asm.mov(rax, Imm64::from(add <span class="kw">as </span>u64));
+    asm.mov(rax, Imm64::from(add <span class="kw">as </span>usize));
     asm.call(rax);
     asm.ret();
 

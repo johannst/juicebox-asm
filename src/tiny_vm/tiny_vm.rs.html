@@ -695,6 +695,7 @@
 <a href="#695" id="695">695</a>
 <a href="#696" id="696">696</a>
 <a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! TinyVm example.
 //!
 //! This example introduces as simple 16 bit virtual machine the [`TinyVm`]. The VM consits of
@@ -736,8 +737,9 @@
 </span><span class="attr">#[cfg(not(any(target_arch = <span class="string">&quot;x86_64&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>)))]
 </span><span class="macro">compile_error!</span>(<span class="string">&quot;Only supported on x86_64 with SystemV abi&quot;</span>);
 
-<span class="kw">use </span>juicebox_asm::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>juicebox_asm::insn::<span class="kw-2">*</span>;
 <span class="kw">use </span>juicebox_asm::Runtime;
+<span class="kw">use </span>juicebox_asm::{Asm, Imm16, Imm64, Label, MemOp, Reg16, Reg64};
 
 <span class="doccomment">/// A guest physical address.
 </span><span class="kw">pub struct </span>PhysAddr(<span class="kw">pub </span>u16);

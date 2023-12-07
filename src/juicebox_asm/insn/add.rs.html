@@ -23,7 +23,9 @@
 <a href="#23" id="23">23</a>
 <a href="#24" id="24">24</a>
 <a href="#25" id="25">25</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
+<a href="#26" id="26">26</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::Add;
+<span class="kw">use crate</span>::{Asm, Imm16, MemOp, Reg16, Reg32, Reg64};
 
 <span class="kw">impl </span>Add&lt;Reg64, Reg64&gt; <span class="kw">for </span>Asm {
     <span class="kw">fn </span>add(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: Reg64, op2: Reg64) {

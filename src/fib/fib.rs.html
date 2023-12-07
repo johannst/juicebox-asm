@@ -76,13 +76,15 @@
 <a href="#76" id="76">76</a>
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Fibonacci example.
 //!
 //! Jit compile a function at runtime (generate native host code) to compute the fibonacci sequence
 //! to demonstrate the [`juicebox_asm`] crate.
 
-</span><span class="kw">use </span>juicebox_asm::prelude::<span class="kw-2">*</span>;
+</span><span class="kw">use </span>juicebox_asm::insn::<span class="kw-2">*</span>;
 <span class="kw">use </span>juicebox_asm::Runtime;
+<span class="kw">use </span>juicebox_asm::{Asm, Imm64, Label, Reg64};
 
 <span class="kw">const fn </span>fib_rs(n: u64) -&gt; u64 {
     <span class="kw">match </span>n {

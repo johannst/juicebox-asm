@@ -86,10 +86,129 @@
 <a href="#86" id="86">86</a>
 <a href="#87" id="87">87</a>
 <a href="#88" id="88">88</a>
-</pre></div><pre class="rust"><code><span class="doccomment">//! A simple runtime which can be used to execute emitted instructions.
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+</pre></div><pre class="rust"><code><span class="doccomment">//! Simple `mmap`ed runtime.
+//!
+//! This runtime supports adding code to executable pages and turn the added code into user
+//! specified function pointer.
 
-</span><span class="kw">use </span>core::slice;
-<span class="kw">use </span>nix::sys::mman::{mmap, mprotect, munmap, MapFlags, ProtFlags};
+</span><span class="kw">use </span>nix::sys::mman::{mmap, mprotect, munmap, MapFlags, ProtFlags};
+
+<span class="attr">#[cfg(not(target_os = <span class="string">&quot;linux&quot;</span>))]
+</span><span class="macro">compile_error!</span>(<span class="string">&quot;This runtime is only supported on linux&quot;</span>);
 
 <span class="doccomment">/// A simple `mmap`ed runtime with executable pages.
 </span><span class="kw">pub struct </span>Runtime {
@@ -100,19 +219,23 @@
 
 <span class="kw">impl </span>Runtime {
     <span class="doccomment">/// Create a new [Runtime].
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `mmap` call fails.
     </span><span class="kw">pub fn </span>new() -&gt; Runtime {
         <span class="comment">// Allocate a single page.
-        </span><span class="kw">let </span>len = core::num::NonZeroUsize::new(<span class="number">4096</span>).unwrap();
+        </span><span class="kw">let </span>len = core::num::NonZeroUsize::new(<span class="number">4096</span>).expect(<span class="string">&quot;Value is non zero&quot;</span>);
         <span class="kw">let </span>buf = <span class="kw">unsafe </span>{
             mmap(
                 <span class="prelude-val">None</span>,
                 len,
-                ProtFlags::PROT_WRITE | ProtFlags::PROT_READ | ProtFlags::PROT_EXEC,
+                ProtFlags::PROT_NONE,
                 MapFlags::MAP_PRIVATE | MapFlags::MAP_ANONYMOUS,
                 <span class="number">0</span>, <span class="comment">/* fd */
                 </span><span class="number">0</span>, <span class="comment">/* off */
             </span>)
-            .unwrap() <span class="kw">as </span><span class="kw-2">*mut </span>u8
+            .expect(<span class="string">&quot;Failed to mmap runtime code page&quot;</span>) <span class="kw">as </span><span class="kw-2">*mut </span>u8
         };
 
         Runtime {
@@ -122,55 +245,160 @@
         }
     }
 
-    <span class="doccomment">/// Write protect the underlying code page(s).
-    </span><span class="kw">pub fn </span>protect(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-        <span class="kw">unsafe </span>{
-            <span class="comment">// Remove write permissions from code buffer and allow to read-execute from it.
-            </span>mprotect(
-                <span class="self">self</span>.buf.cast(),
-                <span class="self">self</span>.len,
-                ProtFlags::PROT_READ | ProtFlags::PROT_EXEC,
-            )
-            .expect(<span class="string">&quot;Failed to RX mprotect Runtime code buffer&quot;</span>);
-        }
-    }
-
-    <span class="doccomment">/// Add block of code to the runtime and get function pointer back.
+    <span class="doccomment">/// Add the block of `code` to the runtime and a get function pointer of type `F`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `code` does not fit on the `mmap`ed pages or is empty.
+    ///
+    /// # Safety
+    ///
+    /// The code added must fulfill the ABI of the specified function `F` and the returned function
+    /// pointer is only valid until the [`Runtime`] is dropped.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut rt = juicebox_asm::Runtime::new();
+    ///
+    /// let code = [ 0x90 /* nop */, 0xc3 /* ret */ ];
+    /// let nop = unsafe { rt.add_code::&lt;extern &quot;C&quot; fn()&gt;(&amp;code) };
+    ///
+    /// nop();
+    /// ```
     </span><span class="kw">pub unsafe fn </span>add_code&lt;F&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, code: <span class="kw">impl </span>AsRef&lt;[u8]&gt;) -&gt; F {
         <span class="comment">// Get pointer to start of next free byte.
-        </span><span class="macro">assert!</span>(<span class="self">self</span>.idx &lt; <span class="self">self</span>.len);
+        </span><span class="macro">assert!</span>(<span class="self">self</span>.idx &lt; <span class="self">self</span>.len, <span class="string">&quot;Runtime code page full&quot;</span>);
         <span class="kw">let </span>fn_start = <span class="self">self</span>.buf.add(<span class="self">self</span>.idx);
 
         <span class="comment">// Copy over code.
         </span><span class="kw">let </span>code = code.as_ref();
-        <span class="macro">assert!</span>(code.len() &lt; (<span class="self">self</span>.len - <span class="self">self</span>.idx));
+        <span class="macro">assert!</span>(!code.is_empty(), <span class="string">&quot;Adding empty code not supported&quot;</span>);
+        <span class="macro">assert!</span>(
+            code.len() &lt;= (<span class="self">self</span>.len - <span class="self">self</span>.idx),
+            <span class="string">&quot;Code does not fit on the runtime code page&quot;
+        </span>);
+        <span class="self">self</span>.unprotect();
         <span class="kw">unsafe </span>{ std::ptr::copy_nonoverlapping(code.as_ptr(), fn_start, code.len()) };
+        <span class="self">self</span>.protect();
 
         <span class="comment">// Increment index to next free byte.
         </span><span class="self">self</span>.idx += code.len();
 
         <span class="comment">// Return function to newly added code.
-        </span><span class="self">Self</span>::as_fn::&lt;F&gt;(fn_start)
+        </span><span class="kw">unsafe </span>{ <span class="self">Self</span>::as_fn::&lt;F&gt;(fn_start) }
     }
 
-    <span class="doccomment">/// Reinterpret the block of code as `F`.
+    <span class="doccomment">/// Dump the code added so far to the runtime into a file called `jit.asm` in the processes
+    /// current working directory.
+    ///
+    /// The code can be inspected with a disassembler as for example `ndiasm` from
+    /// [nasm.us](https://nasm.us/index.php).
+    /// ```sh
+    /// ndisasm -b 64 jit.asm
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if writing the file failed.
+    </span><span class="kw">pub fn </span>dump(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+        <span class="macro">assert!</span>(<span class="self">self</span>.idx &lt;= <span class="self">self</span>.len);
+        <span class="kw">let </span>code = <span class="kw">unsafe </span>{ core::slice::from_raw_parts(<span class="self">self</span>.buf, <span class="self">self</span>.idx) };
+        std::fs::write(<span class="string">&quot;jit.asm&quot;</span>, code).expect(<span class="string">&quot;Failed to write file&quot;</span>);
+    }
+
+    <span class="doccomment">/// Reinterpret the block of code pointed to by `fn_start` as `F`.
     </span><span class="attr">#[inline]
     </span><span class="kw">unsafe fn </span>as_fn&lt;F&gt;(fn_start: <span class="kw-2">*mut </span>u8) -&gt; F {
         <span class="kw">unsafe </span>{ std::mem::transmute_copy(<span class="kw-2">&amp;</span>fn_start) }
     }
 
-    <span class="doccomment">/// Dump the currently added code to a file called `jit.asm`. The disassembly can be inspected
-    /// as `ndisasm -b 64 jit.asm`.
-    </span><span class="kw">pub fn </span>dump(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="kw">let </span>code = <span class="kw">unsafe </span>{ slice::from_raw_parts(<span class="self">self</span>.buf, <span class="self">self</span>.idx) };
-        std::fs::write(<span class="string">&quot;jit.asm&quot;</span>, code).unwrap();
+    <span class="doccomment">/// Add write protection the underlying code page(s).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `mprotect` call fails.
+    </span><span class="kw">fn </span>protect(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="kw">unsafe </span>{
+            <span class="comment">// Remove write permissions from code page and allow to read-execute from it.
+            </span>mprotect(
+                <span class="self">self</span>.buf.cast(),
+                <span class="self">self</span>.len,
+                ProtFlags::PROT_READ | ProtFlags::PROT_EXEC,
+            )
+            .expect(<span class="string">&quot;Failed to RX mprotect runtime code page&quot;</span>);
+        }
+    }
+
+    <span class="doccomment">/// Remove write protection the underlying code page(s).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `mprotect` call fails.
+    </span><span class="kw">fn </span>unprotect(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="kw">unsafe </span>{
+            <span class="comment">// Add write permissions to code page.
+            </span>mprotect(<span class="self">self</span>.buf.cast(), <span class="self">self</span>.len, ProtFlags::PROT_WRITE)
+                .expect(<span class="string">&quot;Failed to W mprotect runtime code page&quot;</span>);
+        }
     }
 }
 
 <span class="kw">impl </span>Drop <span class="kw">for </span>Runtime {
-    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+    <span class="doccomment">/// Unmaps the code page. This invalidates all the function pointer returned by
+    /// [`Runtime::add_code`].
+    </span><span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">unsafe </span>{
-            munmap(<span class="self">self</span>.buf.cast(), <span class="self">self</span>.len).expect(<span class="string">&quot;Failed to munmap Runtime&quot;</span>);
+            munmap(<span class="self">self</span>.buf.cast(), <span class="self">self</span>.len).expect(<span class="string">&quot;Failed to munmap runtime&quot;</span>);
+        }
+    }
+}
+
+<span class="attr">#[cfg(test)]
+</span><span class="kw">mod </span>test {
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_code_max_size() {
+        <span class="kw">let </span><span class="kw-2">mut </span>rt = Runtime::new();
+        <span class="kw">let </span>code = [<span class="number">0u8</span>; <span class="number">4096</span>];
+        <span class="kw">unsafe </span>{
+            rt.add_code::&lt;<span class="kw">extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn</span>()&gt;(code);
+        }
+    }
+
+    <span class="attr">#[test]
+    #[should_panic]
+    </span><span class="kw">fn </span>test_code_max_size_plus_1() {
+        <span class="kw">let </span><span class="kw-2">mut </span>rt = Runtime::new();
+        <span class="kw">let </span>code = [<span class="number">0u8</span>; <span class="number">4097</span>];
+        <span class="kw">unsafe </span>{
+            rt.add_code::&lt;<span class="kw">extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn</span>()&gt;(code);
+        }
+    }
+
+    <span class="attr">#[test]
+    #[should_panic]
+    </span><span class="kw">fn </span>test_code_max_size_plus_1_2() {
+        <span class="kw">let </span><span class="kw-2">mut </span>rt = Runtime::new();
+        <span class="kw">let </span>code = [<span class="number">0u8</span>; <span class="number">4096</span>];
+        <span class="kw">unsafe </span>{
+            rt.add_code::&lt;<span class="kw">extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn</span>()&gt;(code);
+        }
+
+        <span class="kw">let </span>code = [<span class="number">0u8</span>; <span class="number">1</span>];
+        <span class="kw">unsafe </span>{
+            rt.add_code::&lt;<span class="kw">extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn</span>()&gt;(code);
+        }
+    }
+
+    <span class="attr">#[test]
+    #[should_panic]
+    </span><span class="kw">fn </span>test_empty_code() {
+        <span class="kw">let </span><span class="kw-2">mut </span>rt = Runtime::new();
+        <span class="kw">let </span>code = [<span class="number">0u8</span>; <span class="number">0</span>];
+        <span class="kw">unsafe </span>{
+            rt.add_code::&lt;<span class="kw">extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn</span>()&gt;(code);
         }
     }
 }

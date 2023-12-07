@@ -5,10 +5,12 @@
 <a href="#5" id="5">5</a>
 <a href="#6" id="6">6</a>
 <a href="#7" id="7">7</a>
+<a href="#8" id="8">8</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::Asm;
 
 <span class="kw">impl </span>Asm {
-    <span class="kw">pub fn </span>ret(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+    <span class="doccomment">/// Emit a [`ret`](https://www.felixcloutier.com/x86/ret) instruction.
+    </span><span class="kw">pub fn </span>ret(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[<span class="number">0xc3</span>]);
     }
 }

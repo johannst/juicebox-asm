@@ -17,7 +17,9 @@
 <a href="#17" id="17">17</a>
 <a href="#18" id="18">18</a>
 <a href="#19" id="19">19</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
+<a href="#20" id="20">20</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::Test;
+<span class="kw">use crate</span>::{Asm, Imm16, MemOp, Reg32, Reg64};
 
 <span class="kw">impl </span>Test&lt;Reg64, Reg64&gt; <span class="kw">for </span>Asm {
     <span class="kw">fn </span>test(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: Reg64, op2: Reg64) {
