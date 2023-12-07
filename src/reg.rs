@@ -155,27 +155,18 @@ mod tests {
             assert_eq!(r.idx(), idx);
 
             // Check REX.W bit.
-            assert_eq!(r.rexw(), false);
+            assert!(!r.rexw());
 
             // Check need REX byte.
-            let rex = match r {
-                r8l | r9l | r10l | r11l | r12l | r13l | r14l | r15l | spl | bpl | sil | dil => true,
-                _ => false,
-            };
+            let rex = matches!(r, r8l | r9l | r10l | r11l | r12l | r13l | r14l | r15l | spl | bpl | sil | dil);
             assert_eq!(r.need_rex(), rex);
 
             // Check need SIB byte.
-            let sib = match r {
-                spl | r12l | ah => true,
-                _ => false,
-            };
+            let sib = matches!(r, spl | r12l | ah);
             assert_eq!(r.need_sib(), sib);
 
             // Check if is PC relative addressing.
-            let rel = match r {
-                bpl | r13l | ch => true,
-                _ => false,
-            };
+            let rel = matches!(r, bpl | r13l | ch);
             assert_eq!(r.is_pc_rel(), rel);
         }
     }
@@ -207,27 +198,18 @@ mod tests {
             assert_eq!(r.idx(), idx);
 
             // Check REX.W bit.
-            assert_eq!(r.rexw(), false);
+            assert!(!r.rexw());
 
             // Check need REX byte.
-            let rex = match r {
-                r8w | r9w | r10w | r11w | r12w | r13w | r14w | r15w => true,
-                _ => false,
-            };
+            let rex = matches!(r, r8w | r9w | r10w | r11w | r12w | r13w | r14w | r15w);
             assert_eq!(r.need_rex(), rex);
 
             // Check need SIB byte.
-            let sib = match r {
-                sp | r12w => true,
-                _ => false,
-            };
+            let sib = matches!(r, sp | r12w);
             assert_eq!(r.need_sib(), sib);
 
             // Check if is PC relative addressing.
-            let rel = match r {
-                bp | r13w => true,
-                _ => false,
-            };
+            let rel = matches!(r, bp | r13w);
             assert_eq!(r.is_pc_rel(), rel);
         }
     }
@@ -259,27 +241,18 @@ mod tests {
             assert_eq!(r.idx(), idx);
 
             // Check REX.W bit.
-            assert_eq!(r.rexw(), false);
+            assert!(!r.rexw());
 
             // Check need REX byte.
-            let rex = match r {
-                r8d | r9d | r10d | r11d | r12d | r13d | r14d | r15d => true,
-                _ => false,
-            };
+            let rex = matches!(r, r8d | r9d | r10d | r11d | r12d | r13d | r14d | r15d);
             assert_eq!(r.need_rex(), rex);
 
             // Check need SIB byte.
-            let sib = match r {
-                esp | r12d => true,
-                _ => false,
-            };
+            let sib = matches!(r, esp | r12d);
             assert_eq!(r.need_sib(), sib);
 
             // Check if is PC relative addressing.
-            let rel = match r {
-                ebp | r13d => true,
-                _ => false,
-            };
+            let rel = matches!(r, ebp | r13d);
             assert_eq!(r.is_pc_rel(), rel);
         }
     }
@@ -311,23 +284,17 @@ mod tests {
             assert_eq!(r.idx(), idx);
 
             // Check REX.W bit.
-            assert_eq!(r.rexw(), true);
+            assert!(r.rexw());
 
             // Check need REX byte.
-            assert_eq!(r.need_rex(), true);
+            assert!(r.need_rex());
 
             // Check need SIB byte.
-            let sib = match r {
-                rsp | r12 => true,
-                _ => false,
-            };
+            let sib = matches!(r, rsp | r12);
             assert_eq!(r.need_sib(), sib);
 
             // Check if is PC relative addressing.
-            let rel = match r {
-                rbp | r13 => true,
-                _ => false,
-            };
+            let rel = matches!(r, rbp | r13);
             assert_eq!(r.is_pc_rel(), rel);
         }
     }

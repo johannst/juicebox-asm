@@ -46,5 +46,18 @@ impl_imm!(
 );
 impl_imm!(
     /// Type representing a 64 bit immediate.
-    Imm64, 8, from: { u64, i64, u32, i32, u16, i16, u8, i8 }
+    Imm64, 8, from: { u64, i64, u32, i32, u16, i16, u8, i8, usize, isize }
 );
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::mem::size_of;
+
+    #[test]
+    fn test_usize_isize() {
+        // Imm64 should not implementd from usize/isize if this fails.
+        assert_eq!(size_of::<usize>(), size_of::<Imm64>());
+        assert_eq!(size_of::<isize>(), size_of::<Imm64>());
+    }
+}

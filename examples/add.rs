@@ -21,9 +21,9 @@ fn main() {
     //   rdi -> first argument
     //   rsi -> second argument
     //   rax -> return value
-    //
+
     asm.mov(rsi, Imm64::from(42));
-    asm.mov(rax, Imm64::from(add as u64));
+    asm.mov(rax, Imm64::from(add as usize));
     asm.call(rax);
     asm.ret();
 
