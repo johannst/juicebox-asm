@@ -58,5 +58,13 @@ The [`examples/`](examples/) folder provides additional examples:
 - [`add.rs`](examples/add.rs) jit compile a function calling another function compiled into the example.
 - [`tiny_vm.rs`](examples/tiny_vm.rs) define a minimal `virtual machine (VM)` which demonstrates a simple jit compiler for translating VM guest software.
 
+## git hook for local development
+
+The [`ci/`] checks can be run automatically during local development by
+installing the following `pre-commit` git hook.
+```sh
+echo 'make -C ci' > .git/hooks/pre-commit; chmod +x .git/hooks/pre-commit
+```
+
 ## License
 This project is licensed under the [MIT](LICENSE) license.

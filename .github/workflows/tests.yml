@@ -16,16 +16,19 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Build
-      run: cargo build --verbose
+      run: make -C ci build
 
     - name: Build examples
-      run: cargo build --verbose --examples
+      run: make -C ci build-examples
 
     - name: Check fmt
-      run: cargo fmt --check
+      run: make -C ci check-fmt
+
+    - name: Check clippy lints
+      run: make -C ci check-clippy
 
     - name: Run tests
-      run: cargo test --verbose
+      run: make -C ci check-test
 
     - name: Run example tests
-      run: cargo test --examples --verbose
+      run: make -C ci check-examples
