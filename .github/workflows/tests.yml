@@ -28,7 +28,10 @@ jobs:
       run: make -C ci check-clippy
 
     - name: Run tests
-      run: make -C ci check-test
+      run: make -C ci check-tests
 
     - name: Run example tests
       run: make -C ci check-examples
+
+    - name: Run examples
+      run: make -C ci run-examples

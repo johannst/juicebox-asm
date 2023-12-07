@@ -1,4 +1,4 @@
-all: build build-examples check-fmt check-clippy check-tests check-examples
+all: build build-examples check-fmt check-clippy check-tests check-examples run-examples
 
 build:
 	cargo build
@@ -17,3 +17,9 @@ check-tests:
 
 check-examples:
 	cargo test --examples
+
+run-examples:
+	cargo run --example fib
+	cargo run --example add
+	cargo run --example tiny_vm
+	cargo run --example tiny_vm jit
