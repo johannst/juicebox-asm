@@ -23,7 +23,10 @@ pub trait Call<T> {
 }
 
 pub trait Cmp<T, U> {
-    /// Emit a compare call instruction.
+    /// Emit a compare instruction.
+    ///
+    /// Computes `op2 - op1` and sets the status flags in the same way as the `sub` instruction,
+    /// the result is discarded.
     fn cmp(&mut self, op1: T, op2: U);
 }
 
