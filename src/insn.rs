@@ -12,16 +12,19 @@ mod nop;
 mod ret;
 mod test;
 
+/// Trait for [`add`](https://www.felixcloutier.com/x86/add) instruction kinds.
 pub trait Add<T, U> {
     /// Emit an add instruction.
     fn add(&mut self, op1: T, op2: U);
 }
 
+/// Trait for [`call`](https://www.felixcloutier.com/x86/call) instruction kinds.
 pub trait Call<T> {
     /// Emit a call instruction.
     fn call(&mut self, op1: T);
 }
 
+/// Trait for [`cmp`](https://www.felixcloutier.com/x86/cmp) instruction kinds.
 pub trait Cmp<T, U> {
     /// Emit a compare instruction.
     ///
@@ -30,31 +33,37 @@ pub trait Cmp<T, U> {
     fn cmp(&mut self, op1: T, op2: U);
 }
 
+/// Trait for [`dec`](https://www.felixcloutier.com/x86/dec) instruction kinds.
 pub trait Dec<T> {
     /// Emit a decrement instruction.
     fn dec(&mut self, op1: T);
 }
 
+/// Trait for [`jmp`](https://www.felixcloutier.com/x86/jmp) instruction kinds.
 pub trait Jmp<T> {
     /// Emit an unconditional jump instruction.
     fn jmp(&mut self, op1: T);
 }
 
+/// Trait for [`jnz`](https://www.felixcloutier.com/x86/jcc) instruction kinds.
 pub trait Jnz<T> {
     /// Emit a conditional jump if not zero instruction (`ZF = 0`).
     fn jnz(&mut self, op1: T);
 }
 
+/// Trait for [`jz`](https://www.felixcloutier.com/x86/jcc) instruction kinds.
 pub trait Jz<T> {
     /// Emit a conditional jump if zero instruction (`ZF = 1`).
     fn jz(&mut self, op1: T);
 }
 
+/// Trait for [`mov`](https://www.felixcloutier.com/x86/mov) instruction kinds.
 pub trait Mov<T, U> {
     /// Emit an move instruction.
     fn mov(&mut self, op1: T, op2: U);
 }
 
+/// Trait for [`test`](https://www.felixcloutier.com/x86/test) instruction kinds.
 pub trait Test<T, U> {
     /// Emit a logical compare instruction.
     ///
