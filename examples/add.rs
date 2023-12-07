@@ -6,9 +6,9 @@
 #[cfg(not(any(target_arch = "x86_64", target_os = "linux")))]
 compile_error!("Only supported on x86_64 with SystemV abi");
 
-use juicebox_asm::prelude::*;
+use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
-use Reg64::*;
+use juicebox_asm::{Asm, Imm64, Reg64::*};
 
 extern "C" fn add(a: u32, b: u32) -> u32 {
     a + b

@@ -39,8 +39,9 @@
 #[cfg(not(any(target_arch = "x86_64", target_os = "linux")))]
 compile_error!("Only supported on x86_64 with SystemV abi");
 
-use juicebox_asm::prelude::*;
+use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
+use juicebox_asm::{Asm, Imm16, Imm64, Label, MemOp, Reg16, Reg64};
 
 /// A guest physical address.
 pub struct PhysAddr(pub u16);

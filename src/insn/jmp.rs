@@ -1,4 +1,5 @@
-use crate::prelude::*;
+use super::Jmp;
+use crate::{Asm, Label};
 
 impl Jmp<&mut Label> for Asm {
     fn jmp(&mut self, op1: &mut Label) {

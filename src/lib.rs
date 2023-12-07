@@ -2,7 +2,8 @@
 //!
 //! The following is an fibonacci example implementation.
 //! ```rust
-//! use juicebox_asm::prelude::*;
+//! use juicebox_asm::{Asm, Reg64, Imm64, Label};
+//! use juicebox_asm::insn::*;
 //! use juicebox_asm::Runtime;
 //!
 //! const fn fib_rs(n: u64) -> u64 {
@@ -72,13 +73,12 @@
 //! }
 //! ```
 
-pub mod prelude;
-
 mod imm;
-mod insn;
 mod label;
 mod reg;
 mod rt;
+
+pub mod insn;
 
 pub use imm::{Imm16, Imm32, Imm64, Imm8};
 pub use label::Label;

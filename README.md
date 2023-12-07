@@ -15,8 +15,9 @@ An `x64` jit assembler for learning purpose with the following two main goals:
 ## Example
 
 ```rust
-use juicebox_asm::prelude::{Reg32::*, *};
+use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
+use juicebox_asm::{Asm, Imm32, Label, Reg32::*};
 
 fn main() {
     let mut asm = Asm::new();
@@ -45,8 +46,8 @@ fn main() {
 
     asm.ret();
 
-    let rt = Runtime::new(&asm.into_code());
-    let func = unsafe { rt.as_fn::<extern "C" fn() -> u32>() };
+    let mut rt = Runtime::new();
+    let func = unsafe { rt.add_code::<extern "C" fn() -> u32>(&asm.into_code()) };
     assert_eq!(func(), (0..=42).into_iter().sum());
 }
 ```

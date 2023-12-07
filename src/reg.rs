@@ -158,7 +158,10 @@ mod tests {
             assert!(!r.rexw());
 
             // Check need REX byte.
-            let rex = matches!(r, r8l | r9l | r10l | r11l | r12l | r13l | r14l | r15l | spl | bpl | sil | dil);
+            let rex = matches!(
+                r,
+                r8l | r9l | r10l | r11l | r12l | r13l | r14l | r15l | spl | bpl | sil | dil
+            );
             assert_eq!(r.need_rex(), rex);
 
             // Check need SIB byte.

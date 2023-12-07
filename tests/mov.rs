@@ -1,4 +1,5 @@
-use juicebox_asm::prelude::{Reg16::*, Reg32::*, Reg64::*, Reg8::*, *};
+use juicebox_asm::insn::Mov;
+use juicebox_asm::{Asm, Imm16, Imm32, Imm64, Imm8, MemOp, Reg16::*, Reg32::*, Reg64::*, Reg8::*};
 
 macro_rules! mov {
     ($op1:expr, $op2:expr) => {{

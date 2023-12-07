@@ -1,4 +1,5 @@
-use crate::prelude::*;
+use super::Cmp;
+use crate::{Asm, Imm16, MemOp};
 
 impl Cmp<MemOp, Imm16> for Asm {
     fn cmp(&mut self, op1: MemOp, op2: Imm16) {

@@ -6,7 +6,8 @@ use std::collections::HashSet;
 /// A label which is used as target for jump instructions.
 ///
 /// ```rust
-/// use juicebox_asm::prelude::*;
+/// use juicebox_asm::{Asm, Label, Reg64};
+/// use juicebox_asm::insn::{Mov, Jmp};
 ///
 /// let mut lbl = Label::new();
 /// let mut asm = Asm::new();

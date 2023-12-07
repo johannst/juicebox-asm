@@ -1,4 +1,5 @@
-use crate::prelude::*;
+use super::Jnz;
+use crate::{Asm, Label};
 
 impl Jnz<&mut Label> for Asm {
     fn jnz(&mut self, op1: &mut Label) {

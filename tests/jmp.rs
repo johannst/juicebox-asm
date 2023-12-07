@@ -1,4 +1,5 @@
-use juicebox_asm::prelude::*;
+use juicebox_asm::insn::Jmp;
+use juicebox_asm::{Asm, Label};
 
 #[test]
 #[should_panic]

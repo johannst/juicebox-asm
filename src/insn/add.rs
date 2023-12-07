@@ -1,4 +1,5 @@
-use crate::prelude::*;
+use super::Add;
+use crate::{Asm, Imm16, MemOp, Reg16, Reg32, Reg64};
 
 impl Add<Reg64, Reg64> for Asm {
     fn add(&mut self, op1: Reg64, op2: Reg64) {

@@ -3,8 +3,9 @@
 //! Jit compile a function at runtime (generate native host code) to compute the fibonacci sequence
 //! to demonstrate the [`juicebox_asm`] crate.
 
-use juicebox_asm::prelude::*;
+use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
+use juicebox_asm::{Asm, Imm64, Label, Reg64};
 
 const fn fib_rs(n: u64) -> u64 {
     match n {

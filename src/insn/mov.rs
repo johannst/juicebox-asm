@@ -1,4 +1,5 @@
-use crate::prelude::*;
+use super::Mov;
+use crate::{Asm, Imm16, Imm32, Imm64, Imm8, MemOp, Reg16, Reg32, Reg64, Reg8};
 
 // -- MOV : reg reg
 

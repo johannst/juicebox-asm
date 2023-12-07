@@ -1,4 +1,5 @@
-use crate::prelude::*;
+use super::Test;
+use crate::{Asm, Imm16, MemOp, Reg32, Reg64};
 
 impl Test<Reg64, Reg64> for Asm {
     fn test(&mut self, op1: Reg64, op2: Reg64) {

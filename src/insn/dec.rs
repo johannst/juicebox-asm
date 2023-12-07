@@ -1,4 +1,5 @@
-use crate::prelude::*;
+use super::Dec;
+use crate::{Asm, Reg32, Reg64};
 
 impl Dec<Reg64> for Asm {
     fn dec(&mut self, op1: Reg64) {
