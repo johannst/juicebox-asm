@@ -60,10 +60,11 @@ The [`examples/`](examples/) folder provides additional examples:
 
 ## git hook for local development
 
-The [`ci/`] checks can be run automatically during local development by
+The [`ci/`](ci) checks can be run automatically during local development by
 installing the following `pre-commit` git hook.
 ```sh
-echo 'make -C ci' > .git/hooks/pre-commit; chmod +x .git/hooks/pre-commit
+echo 'make -C ci' > .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
 ```
 
 ## License
