@@ -36,9 +36,6 @@
 //! }
 //! ```
 
-#[cfg(not(any(target_arch = "x86_64", target_os = "linux")))]
-compile_error!("Only supported on x86_64 with SystemV abi");
-
 use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
 use juicebox_asm::{Asm, Imm16, Imm64, Label, MemOp, Reg16, Reg64};
@@ -258,6 +255,7 @@ impl TinyVm {
         }
     }
 
+    #[cfg(all(any(target_arch = "x86_64", target_os = "linux")))]
     /// Translate the bb at the current pc and return a JitFn pointer to it.
     fn translate_next_bb(&mut self) -> JitFn {
         let mut bb = Asm::new();
@@ -268,13 +266,15 @@ impl TinyVm {
 
             pc = pc.wrapping_add(1);
 
-            // JIT ABI.
+            // JIT abi: JitFn -> JitRet
+            //
+            // According to SystemV abi:
             //   enter
             //     rdi => regs
             //     rsi => dmem
             //   exit
-            //     rax => JitRet(0,
-            //     rdx =>        1)
+            //     rax => JitRet.0
+            //     rdx => JitRet.1
 
             // Generate memory operand into regs for guest register.
             let reg_op = |r: TinyReg| {
