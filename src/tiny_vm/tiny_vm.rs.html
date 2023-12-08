@@ -734,10 +734,7 @@
 //! }
 //! ```
 
-</span><span class="attr">#[cfg(not(any(target_arch = <span class="string">&quot;x86_64&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>)))]
-</span><span class="macro">compile_error!</span>(<span class="string">&quot;Only supported on x86_64 with SystemV abi&quot;</span>);
-
-<span class="kw">use </span>juicebox_asm::insn::<span class="kw-2">*</span>;
+</span><span class="kw">use </span>juicebox_asm::insn::<span class="kw-2">*</span>;
 <span class="kw">use </span>juicebox_asm::Runtime;
 <span class="kw">use </span>juicebox_asm::{Asm, Imm16, Imm64, Label, MemOp, Reg16, Reg64};
 
@@ -956,7 +953,8 @@
         }
     }
 
-    <span class="doccomment">/// Translate the bb at the current pc and return a JitFn pointer to it.
+    <span class="attr">#[cfg(all(any(target_arch = <span class="string">&quot;x86_64&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>)))]
+    </span><span class="doccomment">/// Translate the bb at the current pc and return a JitFn pointer to it.
     </span><span class="kw">fn </span>translate_next_bb(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; JitFn {
         <span class="kw">let </span><span class="kw-2">mut </span>bb = Asm::new();
         <span class="kw">let </span><span class="kw-2">mut </span>pc = <span class="self">self</span>.pc;
@@ -966,13 +964,15 @@
 
             pc = pc.wrapping_add(<span class="number">1</span>);
 
-            <span class="comment">// JIT ABI.
+            <span class="comment">// JIT abi: JitFn -&gt; JitRet
+            //
+            // According to SystemV abi:
             //   enter
             //     rdi =&gt; regs
             //     rsi =&gt; dmem
             //   exit
-            //     rax =&gt; JitRet(0,
-            //     rdx =&gt;        1)
+            //     rax =&gt; JitRet.0
+            //     rdx =&gt; JitRet.1
 
             // Generate memory operand into regs for guest register.
             </span><span class="kw">let </span>reg_op = |r: TinyReg| {
