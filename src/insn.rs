@@ -9,6 +9,8 @@ mod jnz;
 mod jz;
 mod mov;
 mod nop;
+mod pop;
+mod push;
 mod ret;
 mod test;
 
@@ -61,6 +63,18 @@ pub trait Jz<T> {
 pub trait Mov<T, U> {
     /// Emit an move instruction.
     fn mov(&mut self, op1: T, op2: U);
+}
+
+/// Trait for [`push`](https://www.felixcloutier.com/x86/push) instruction kinds.
+pub trait Push<T> {
+    /// Emit a push instruction.
+    fn push(&mut self, op1: T);
+}
+
+/// Trait for [`pop`](https://www.felixcloutier.com/x86/pop) instruction kinds.
+pub trait Pop<T> {
+    /// Emit a pop instruction.
+    fn pop(&mut self, op1: T);
 }
 
 /// Trait for [`test`](https://www.felixcloutier.com/x86/test) instruction kinds.
