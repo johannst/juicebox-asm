@@ -1,4 +1,4 @@
-all: build build-examples check-fmt check-clippy check-tests check-examples run-examples
+all: build build-examples check-fmt check-clippy check-tests check-examples check-readme run-examples
 
 build:
 	cargo build
@@ -17,6 +17,11 @@ check-tests:
 
 check-examples:
 	cargo test --examples
+
+check-readme:
+	awk '/^```rust$$/,/^```$$/ { if (!($$1 ~ "^```")) { print } }' ../README.md > ../examples/readme.rs
+	cargo run --example readme
+	rm -f ../examples/readme.rs
 
 run-examples:
 	cargo run --example fib
