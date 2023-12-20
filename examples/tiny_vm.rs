@@ -1,9 +1,9 @@
 //! TinyVm example.
 //!
-//! This example introduces as simple 16 bit virtual machine the [`TinyVm`]. The VM consits of
-//! three registers defined in [`TinyReg`], a separate _data_ and _insutrction_ memory and a small
+//! This example introduces a simple 16 bit virtual machine the [`TinyVm`]. The VM consists of
+//! three registers defined in [`TinyReg`], a separate _data_ and _instruction_ memory and a small
 //! set of instructions [`TinyInsn`], sufficient to implement a guest program to compute the
-//! fiibonacci sequence.
+//! Fibonacci sequence.
 //!
 //! The `TinyVm` implements a simple _just-in-time (JIT)_ compiler to demonstrate the
 //! [`juicebox_asm`] crate. Additionally, it implements a reference _interpreter_.
