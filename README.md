@@ -54,9 +54,15 @@ fn main() {
 
 The [`examples/`](examples/) folder provides additional examples:
 
-- [`fib.rs`](examples/fib.rs) jit compile a function to compute the `fibonacci` sequence.
-- [`add.rs`](examples/add.rs) jit compile a function calling another function compiled into the example.
-- [`tiny_vm.rs`](examples/tiny_vm.rs) define a minimal `virtual machine (VM)` which demonstrates a simple jit compiler for translating VM guest software.
+- [`fib.rs`](examples/fib.rs) jit compiles a function to compute the
+  `fibonacci` sequence.
+- [`add.rs`](examples/add.rs) jit compiles a function calling another function
+  compiled into the example binary.
+- [`tiny_vm.rs`](examples/tiny_vm.rs) defines a minimal `virtual machine (VM)`
+  with registers, instructions, data & instruction memory. The VM demonstrates
+  a simple *jit compiler* which has a *jit cache* and translates each *basic
+  block* on first execution when running a VM guest image. For reference an
+  interepter is also implemented.
 
 ## git hook for local development
 
