@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `examples/tiny_vm.rs`."><title>tiny_vm.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="tiny_vm" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0 (79e9716c9 2023-11-13)" data-channel="1.74.0" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../tiny_vm/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `examples/tiny_vm.rs`."><title>tiny_vm.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="tiny_vm" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -696,12 +697,19 @@
 <a href="#696" id="696">696</a>
 <a href="#697" id="697">697</a>
 <a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! TinyVm example.
 //!
-//! This example introduces as simple 16 bit virtual machine the [`TinyVm`]. The VM consits of
-//! three registers defined in [`TinyReg`], a separate _data_ and _insutrction_ memory and a small
+//! This example introduces a simple 16 bit virtual machine the [`TinyVm`]. The VM consists of
+//! three registers defined in [`TinyReg`], a separate _data_ and _instruction_ memory and a small
 //! set of instructions [`TinyInsn`], sufficient to implement a guest program to compute the
-//! fiibonacci sequence.
+//! Fibonacci sequence.
 //!
 //! The `TinyVm` implements a simple _just-in-time (JIT)_ compiler to demonstrate the
 //! [`juicebox_asm`] crate. Additionally, it implements a reference _interpreter_.
@@ -801,7 +809,7 @@
 ///                    End of basic block, executed N instructions,
 ///                    must re-enter at `pc = R`.
 /// ```
-</span><span class="kw">type </span>JitFn = <span class="kw">extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn</span>(<span class="kw-2">*mut </span>u16, <span class="kw-2">*mut </span>u8) -&gt; JitRet;
+</span><span class="kw">type </span>JitFn = <span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>(<span class="kw-2">*mut </span>u16, <span class="kw-2">*mut </span>u8) -&gt; JitRet;
 
 <span class="doccomment">/// The `TinyVm` virtual machine state.
 </span><span class="kw">pub struct </span>TinyVm {
@@ -842,7 +850,9 @@
             <span class="comment">// -- JIT state.
             </span>jit_cache,
             rt: Runtime::new(),
-        }
+            <span class="comment">// Confifigure the runtime to generates perf meta data.
+            //rt: Runtime::with_profile(),
+        </span>}
     }
 
     <span class="doccomment">/// Read guest register.
@@ -874,11 +884,11 @@
 
     <span class="doccomment">/// Dump the VM state to stdout.
     </span><span class="kw">pub fn </span>dump(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="macro">println!</span>(<span class="string">&quot;-- TinyVm state --&quot;</span>);
-        <span class="macro">println!</span>(<span class="string">&quot;  ICNT: {}&quot;</span>, <span class="self">self</span>.icnt);
-        <span class="macro">println!</span>(<span class="string">&quot;  PC  : {:02x}&quot;</span>, <span class="self">self</span>.pc - <span class="number">1</span>);
+        <span class="macro">println!</span>(<span class="string">"-- TinyVm state --"</span>);
+        <span class="macro">println!</span>(<span class="string">"  ICNT: {}"</span>, <span class="self">self</span>.icnt);
+        <span class="macro">println!</span>(<span class="string">"  PC  : {:02x}"</span>, <span class="self">self</span>.pc - <span class="number">1</span>);
         <span class="macro">println!</span>(
-            <span class="string">&quot;  A:{:04x} B:{:04x} C:{:04x}&quot;</span>,
+            <span class="string">"  A:{:04x} B:{:04x} C:{:04x}"</span>,
             <span class="self">self</span>.read_reg(TinyReg::A),
             <span class="self">self</span>.read_reg(TinyReg::B),
             <span class="self">self</span>.read_reg(TinyReg::C),
@@ -887,16 +897,16 @@
 
     <span class="doccomment">/// Run in interpreter mode until the next [`TinyInsn::Halt`] instruction is hit.
     </span><span class="kw">pub fn </span>interp(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-        <span class="lifetime">&#39;outer</span>: <span class="kw">loop </span>{
+        <span class="lifetime">'outer</span>: <span class="kw">loop </span>{
             <span class="kw">let </span>insn = <span class="self">self</span>.imem[<span class="self">self</span>.pc];
-            <span class="comment">//println!(&quot;[0x{:02x}] {:?}&quot;, self.pc, insn);
+            <span class="comment">//println!("[0x{:02x}] {:?}", self.pc, insn);
 
             </span><span class="self">self</span>.pc = <span class="self">self</span>.pc.wrapping_add(<span class="number">1</span>);
             <span class="self">self</span>.icnt += <span class="number">1</span>;
 
             <span class="kw">match </span>insn {
                 TinyInsn::Halt =&gt; {
-                    <span class="kw">break </span><span class="lifetime">&#39;outer</span>;
+                    <span class="kw">break </span><span class="lifetime">'outer</span>;
                 }
                 TinyInsn::LoadImm(a, imm) =&gt; {
                     <span class="self">self</span>.write_reg(a, imm);
@@ -932,34 +942,39 @@
     <span class="doccomment">/// Run in JIT mode until the next [`TinyInsn::Halt`] instruction is hit. Translate guest
     /// _basic blocks_ on demand.
     </span><span class="kw">pub fn </span>jit(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-        <span class="lifetime">&#39;outer</span>: <span class="kw">loop </span>{
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(bb_fn) = <span class="self">self</span>.jit_cache[<span class="self">self</span>.pc] {
-                <span class="kw">match </span>bb_fn(<span class="self">self</span>.regs.as_mut_ptr(), <span class="self">self</span>.dmem.as_mut_ptr()) {
-                    JitRet(<span class="number">0</span>, insn) =&gt; {
-                        <span class="self">self</span>.pc += insn <span class="kw">as </span>usize;
-                        <span class="self">self</span>.icnt += insn <span class="kw">as </span>usize;
-                        <span class="kw">break </span><span class="lifetime">&#39;outer</span>;
-                    }
-                    JitRet(insn, reenter_pc) =&gt; {
-                        <span class="self">self</span>.pc = reenter_pc <span class="kw">as </span>usize;
-                        <span class="self">self</span>.icnt += insn <span class="kw">as </span>usize;
-                    }
-                }
+        <span class="lifetime">'outer</span>: <span class="kw">loop </span>{
+            <span class="kw">let </span>bb_fn = <span class="kw">if let </span><span class="prelude-val">Some</span>(bb_fn) = <span class="self">self</span>.jit_cache[<span class="self">self</span>.pc] {
+                bb_fn
             } <span class="kw">else </span>{
                 <span class="kw">let </span>bb_fn = <span class="self">self</span>.translate_next_bb();
                 <span class="self">self</span>.jit_cache[<span class="self">self</span>.pc] = <span class="prelude-val">Some</span>(bb_fn);
-                <span class="comment">//println!(&quot;[0x{:02x}] translated bb at {:p}&quot;, self.pc, bb_fn);
-            </span>}
+                <span class="comment">//println!("[0x{:02x}] translated bb at {:p}", self.pc, bb_fn);
+                </span>bb_fn
+            };
+
+            <span class="kw">match </span>bb_fn(<span class="self">self</span>.regs.as_mut_ptr(), <span class="self">self</span>.dmem.as_mut_ptr()) {
+                <span class="comment">// HALT instruction hit.
+                </span>JitRet(<span class="number">0</span>, insn) =&gt; {
+                    <span class="self">self</span>.pc += insn <span class="kw">as </span>usize;
+                    <span class="self">self</span>.icnt += insn <span class="kw">as </span>usize;
+                    <span class="kw">break </span><span class="lifetime">'outer</span>;
+                }
+                <span class="comment">// End of basic block, re-enter.
+                </span>JitRet(insn, reenter_pc) =&gt; {
+                    <span class="self">self</span>.pc = reenter_pc <span class="kw">as </span>usize;
+                    <span class="self">self</span>.icnt += insn <span class="kw">as </span>usize;
+                }
+            }
         }
     }
 
-    <span class="attr">#[cfg(all(any(target_arch = <span class="string">&quot;x86_64&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>)))]
+    <span class="attr">#[cfg(all(any(target_arch = <span class="string">"x86_64"</span>, target_os = <span class="string">"linux"</span>)))]
     </span><span class="doccomment">/// Translate the bb at the current pc and return a JitFn pointer to it.
     </span><span class="kw">fn </span>translate_next_bb(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; JitFn {
         <span class="kw">let </span><span class="kw-2">mut </span>bb = Asm::new();
         <span class="kw">let </span><span class="kw-2">mut </span>pc = <span class="self">self</span>.pc;
 
-        <span class="lifetime">&#39;outer</span>: <span class="kw">loop </span>{
+        <span class="lifetime">'outer</span>: <span class="kw">loop </span>{
             <span class="kw">let </span>insn = <span class="self">self</span>.imem[pc];
 
             pc = pc.wrapping_add(<span class="number">1</span>);
@@ -976,7 +991,7 @@
 
             // Generate memory operand into regs for guest register.
             </span><span class="kw">let </span>reg_op = |r: TinyReg| {
-                MemOp::IndirectDisp(Reg64::rdi, (r.idx() * <span class="number">2</span>).try_into().expect(<span class="string">&quot;only 3 regs&quot;</span>))
+                MemOp::IndirectDisp(Reg64::rdi, (r.idx() * <span class="number">2</span>).try_into().expect(<span class="string">"only 3 regs"</span>))
             };
 
             <span class="comment">// Generate memory operand into dmem for guest phys address.
@@ -992,7 +1007,7 @@
                     bb.mov(Reg64::rax, Imm64::from(<span class="number">0</span>));
                     bb.mov(Reg64::rdx, Imm64::from(bb_icnt()));
                     bb.ret();
-                    <span class="kw">break </span><span class="lifetime">&#39;outer</span>;
+                    <span class="kw">break </span><span class="lifetime">'outer</span>;
                 }
                 TinyInsn::LoadImm(a, imm) =&gt; {
                     bb.mov(reg_op(a), Imm16::from(imm));
@@ -1016,7 +1031,7 @@
                     bb.mov(Reg64::rax, Imm64::from(bb_icnt()));
                     bb.mov(Reg64::rdx, Imm64::from(reenter_pc(disp)));
                     bb.ret();
-                    <span class="kw">break </span><span class="lifetime">&#39;outer</span>;
+                    <span class="kw">break </span><span class="lifetime">'outer</span>;
                 }
                 TinyInsn::BranchZero(a, disp) =&gt; {
                     bb.cmp(reg_op(a), Imm16::from(<span class="number">0u16</span>));
@@ -1029,7 +1044,7 @@
                     bb.mov(Reg64::rdx, Imm64::from(reenter_pc(pc)));
                     bb.bind(<span class="kw-2">&amp;mut </span>skip_next_pc);
                     bb.ret();
-                    <span class="kw">break </span><span class="lifetime">&#39;outer</span>;
+                    <span class="kw">break </span><span class="lifetime">'outer</span>;
                 }
             }
         }
@@ -1053,7 +1068,7 @@
     </span><span class="kw">pub fn </span>bind(<span class="self">self</span>, prog: <span class="kw-2">&amp;mut </span>Vec&lt;TinyInsn&gt;) {
         <span class="kw">let </span>plen = prog.len();
         <span class="kw">let </span>insn = prog.get_mut(<span class="self">self</span>.pc).expect(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-            <span class="string">&quot;Trying to apply Fixup, but Fixup is out of range pc={} prog.len={}&quot;</span>,
+            <span class="string">"Trying to apply Fixup, but Fixup is out of range pc={} prog.len={}"</span>,
             <span class="self">self</span>.pc, plen
         ));
 
@@ -1062,7 +1077,7 @@
                 <span class="kw-2">*</span>disp = plen;
             }
             <span class="kw">_ </span>=&gt; {
-                <span class="macro">unimplemented!</span>(<span class="string">&quot;Trying to fixup non-branch instruction &#39;{:?}&#39;&quot;</span>, <span class="kw-2">*</span>insn);
+                <span class="macro">unimplemented!</span>(<span class="string">"Trying to fixup non-branch instruction '{:?}'"</span>, <span class="kw-2">*</span>insn);
             }
         }
     }
@@ -1190,24 +1205,24 @@
 
 <span class="kw">fn </span>main() {
     <span class="kw">let </span>use_jit = <span class="kw">match </span>std::env::args().nth(<span class="number">1</span>) {
-        <span class="prelude-val">Some</span>(a) <span class="kw">if </span>a == <span class="string">&quot;-h&quot; </span>|| a == <span class="string">&quot;--help&quot; </span>=&gt; {
-            <span class="macro">println!</span>(<span class="string">&quot;Usage: tiny_vm [mode]&quot;</span>);
-            <span class="macro">println!</span>(<span class="string">&quot;&quot;</span>);
-            <span class="macro">println!</span>(<span class="string">&quot;Options:&quot;</span>);
-            <span class="macro">println!</span>(<span class="string">&quot;    mode    if mode is &#39;jit&#39; then run in jit mode, else in interpreter mode&quot;</span>);
+        <span class="prelude-val">Some</span>(a) <span class="kw">if </span>a == <span class="string">"-h" </span>|| a == <span class="string">"--help" </span>=&gt; {
+            <span class="macro">println!</span>(<span class="string">"Usage: tiny_vm [mode]"</span>);
+            <span class="macro">println!</span>(<span class="string">""</span>);
+            <span class="macro">println!</span>(<span class="string">"Options:"</span>);
+            <span class="macro">println!</span>(<span class="string">"    mode    if mode is 'jit' then run in jit mode, else in interpreter mode"</span>);
             std::process::exit(<span class="number">0</span>);
         }
-        <span class="prelude-val">Some</span>(a) <span class="kw">if </span>a == <span class="string">&quot;jit&quot; </span>=&gt; <span class="bool-val">true</span>,
+        <span class="prelude-val">Some</span>(a) <span class="kw">if </span>a == <span class="string">"jit" </span>=&gt; <span class="bool-val">true</span>,
         <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
     };
 
     <span class="kw">let </span><span class="kw-2">mut </span>vm = TinyVm::new(make_tinyvm_fib(<span class="number">42</span>));
 
     <span class="kw">if </span>use_jit {
-        <span class="macro">println!</span>(<span class="string">&quot;Run in jit mode..&quot;</span>);
+        <span class="macro">println!</span>(<span class="string">"Run in jit mode.."</span>);
         vm.jit();
     } <span class="kw">else </span>{
-        <span class="macro">println!</span>(<span class="string">&quot;Run in interpreter mode..&quot;</span>);
+        <span class="macro">println!</span>(<span class="string">"Run in interpreter mode.."</span>);
         vm.interp();
     }
     vm.dump();
