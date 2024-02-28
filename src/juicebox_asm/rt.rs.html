@@ -259,6 +259,15 @@
 <a href="#258" id="258">258</a>
 <a href="#259" id="259">259</a>
 <a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Simple `mmap`ed runtime.
 //!
 //! This runtime supports adding code to executable pages and turn the added code into user
@@ -351,7 +360,16 @@
         }
     }
 
-    <span class="kw">pub fn </span>with_profile() -&gt; Runtime {
+    <span class="doccomment">/// Create a new [Runtime] which also generates static perf metat data.
+    ///
+    /// For each function added to the [Runtime], an entry will be generated in the
+    /// `/tmp/perf-&lt;PID&gt;.map` file, which `perf report` uses to symbolicate unknown addresses.
+    /// This is applicable for static runtimes only.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `mmap` call fails.
+    </span><span class="kw">pub fn </span>with_profile() -&gt; Runtime {
         <span class="kw">let </span><span class="kw-2">mut </span>rt = Runtime::new();
         rt.perf = <span class="prelude-val">Some</span>(perf::PerfMap::new());
         rt
