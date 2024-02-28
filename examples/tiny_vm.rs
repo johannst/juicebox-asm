@@ -144,6 +144,8 @@ impl TinyVm {
             // -- JIT state.
             jit_cache,
             rt: Runtime::new(),
+            // Confifigure the runtime to generates perf meta data.
+            //rt: Runtime::with_profile(),
         }
     }
 

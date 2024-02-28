@@ -5,3 +5,7 @@ edition = "2021"
 
 [dependencies]
 nix = "0.26.2"
+
+# When profiling one wants debug symbols for release builds.
+#[profile.release]
+#debug = 1
