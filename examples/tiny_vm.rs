@@ -237,22 +237,27 @@ impl TinyVm {
     /// _basic blocks_ on demand.
     pub fn jit(&mut self) {
         'outer: loop {
-            if let Some(bb_fn) = self.jit_cache[self.pc] {
-                match bb_fn(self.regs.as_mut_ptr(), self.dmem.as_mut_ptr()) {
-                    JitRet(0, insn) => {
-                        self.pc += insn as usize;
-                        self.icnt += insn as usize;
-                        break 'outer;
-                    }
-                    JitRet(insn, reenter_pc) => {
-                        self.pc = reenter_pc as usize;
-                        self.icnt += insn as usize;
-                    }
-                }
+            let bb_fn = if let Some(bb_fn) = self.jit_cache[self.pc] {
+                bb_fn
             } else {
                 let bb_fn = self.translate_next_bb();
                 self.jit_cache[self.pc] = Some(bb_fn);
                 //println!("[0x{:02x}] translated bb at {:p}", self.pc, bb_fn);
+                bb_fn
+            };
+
+            match bb_fn(self.regs.as_mut_ptr(), self.dmem.as_mut_ptr()) {
+                // HALT instruction hit.
+                JitRet(0, insn) => {
+                    self.pc += insn as usize;
+                    self.icnt += insn as usize;
+                    break 'outer;
+                }
+                // End of basic block, re-enter.
+                JitRet(insn, reenter_pc) => {
+                    self.pc = reenter_pc as usize;
+                    self.icnt += insn as usize;
+                }
             }
         }
     }
