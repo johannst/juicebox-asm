@@ -3,16 +3,62 @@
 //! This runtime supports adding code to executable pages and turn the added code into user
 //! specified function pointer.
 
-use nix::sys::mman::{mmap, mprotect, munmap, MapFlags, ProtFlags};
-
 #[cfg(not(target_os = "linux"))]
 compile_error!("This runtime is only supported on linux");
+
+use nix::sys::mman::{mmap, mprotect, munmap, MapFlags, ProtFlags};
+
+mod perf {
+    use std::fs;
+    use std::io::Write;
+
+    /// Provide support for the simple [perf jit interface][perf-jit].
+    ///
+    /// This allows a simple (static) jit runtime to generate meta data describing the generated
+    /// functions, which is used during post-processing by `perf report` to symbolize addresses
+    /// captured while executing jitted code.
+    ///
+    /// By the nature of this format, this can not be used for dynamic jit runtimes, which reuses
+    /// memory which previously contained jitted code.
+    ///
+    /// [perf-jit]: https://elixir.bootlin.com/linux/v6.6.6/source/tools/perf/Documentation/jit-interface.txt
+    pub(super) struct PerfMap {
+        file: std::fs::File,
+    }
+
+    impl PerfMap {
+        /// Create an empty perf map file.
+        pub(super) fn new() -> Self {
+            let name = format!("/tmp/perf-{}.map", nix::unistd::getpid());
+            let file = fs::OpenOptions::new()
+                .truncate(true)
+                .create(true)
+                .write(true)
+                .open(&name)
+                .unwrap_or_else(|_| panic!("Failed to open perf map file {}", &name));
+
+            PerfMap { file }
+        }
+
+        /// Add an entry to the perf map file.
+        pub(super) fn add_entry(&mut self, start: usize, len: usize) {
+            // Each line has the following format, fields separated with spaces:
+            //   START SIZE NAME
+            //
+            // START and SIZE are hex numbers without 0x.
+            // NAME is the rest of the line, so it could contain special characters.
+            writeln!(self.file, "{:x} {:x} jitfn_{:x}", start, len, start)
+                .expect("Failed to write PerfMap entry");
+        }
+    }
+}
 
 /// A simple `mmap`ed runtime with executable pages.
 pub struct Runtime {
     buf: *mut u8,
     len: usize,
     idx: usize,
+    perf: Option<perf::PerfMap>,
 }
 
 impl Runtime {
@@ -40,7 +86,14 @@ impl Runtime {
             buf,
             len: len.get(),
             idx: 0,
+            perf: None,
         }
+    }
+
+    pub fn with_profile() -> Runtime {
+        let mut rt = Runtime::new();
+        rt.perf = Some(perf::PerfMap::new());
+        rt
     }
 
     /// Add the block of `code` to the runtime and a get function pointer of type `F`.
@@ -82,6 +135,11 @@ impl Runtime {
 
         // Increment index to next free byte.
         self.idx += code.len();
+
+        // Add perf map entry.
+        if let Some(map) = &mut self.perf {
+            map.add_entry(fn_start as usize, code.len());
+        }
 
         // Return function to newly added code.
         unsafe { Self::as_fn::<F>(fn_start) }
