@@ -90,6 +90,15 @@ impl Runtime {
         }
     }
 
+    /// Create a new [Runtime] which also generates static perf metat data.
+    ///
+    /// For each function added to the [Runtime], an entry will be generated in the
+    /// `/tmp/perf-<PID>.map` file, which `perf report` uses to symbolicate unknown addresses.
+    /// This is applicable for static runtimes only.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `mmap` call fails.
     pub fn with_profile() -> Runtime {
         let mut rt = Runtime::new();
         rt.perf = Some(perf::PerfMap::new());
