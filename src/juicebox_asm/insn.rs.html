@@ -86,10 +86,28 @@
 <a href="#85" id="85">85</a>
 <a href="#86" id="86">86</a>
 <a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Trait definitions of various instructions.
 
 </span><span class="kw">mod </span>add;
 <span class="kw">mod </span>call;
+<span class="kw">mod </span>cmovnz;
+<span class="kw">mod </span>cmovz;
 <span class="kw">mod </span>cmp;
 <span class="kw">mod </span>dec;
 <span class="kw">mod </span>jmp;
@@ -112,6 +130,20 @@
 </span><span class="kw">pub trait </span>Call&lt;T&gt; {
     <span class="doccomment">/// Emit a call instruction.
     </span><span class="kw">fn </span>call(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
+}
+
+<span class="kw">pub trait </span>Cmovnz&lt;T, U&gt; {
+    <span class="doccomment">/// Emit a (conditional) move if not zero instruction.
+    ///
+    /// Move is only commited if (ZF=0).
+    </span><span class="kw">fn </span>cmovnz(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T, op2: U);
+}
+
+<span class="kw">pub trait </span>Cmovz&lt;T, U&gt; {
+    <span class="doccomment">/// Emit a (conditional) move if zero instruction.
+    ///
+    /// Move is only commited if (ZF=1).
+    </span><span class="kw">fn </span>cmovz(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T, op2: U);
 }
 
 <span class="doccomment">/// Trait for [`cmp`](https://www.felixcloutier.com/x86/cmp) instruction kinds.

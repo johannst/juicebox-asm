@@ -343,6 +343,7 @@
 <a href="#342" id="342">342</a>
 <a href="#343" id="343">343</a>
 <a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! The `x64` jit assembler.
 
 </span><span class="kw">use crate</span>::<span class="kw-2">*</span>;
@@ -437,7 +438,7 @@
     <span class="comment">// -- Encode utilities.
 
     </span><span class="doccomment">/// Encode an register-register instruction.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_rr&lt;T: Reg&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: u8, op1: T, op2: T)
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_rr&lt;T: Reg&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: <span class="kw-2">&amp;</span>[u8], op1: T, op2: T)
     <span class="kw">where
         </span><span class="self">Self</span>: EncodeRR&lt;T&gt;,
     {
@@ -454,7 +455,8 @@
         <span class="kw">let </span>rex = &lt;<span class="self">Self </span><span class="kw">as </span>EncodeRR&lt;T&gt;&gt;::rex(op1, op2);
 
         <span class="self">self</span>.emit_optional(<span class="kw-2">&amp;</span>[prefix, rex]);
-        <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[opc, modrm]);
+        <span class="self">self</span>.emit(opc);
+        <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[modrm]);
     }
 
     <span class="doccomment">/// Encode an offset-immediate instruction.
