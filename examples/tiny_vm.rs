@@ -38,7 +38,7 @@
 
 use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
-use juicebox_asm::{Asm, Imm16, Imm64, Label, MemOp, Reg16, Reg64};
+use juicebox_asm::{Asm, Imm16, Imm64, MemOp, Reg16, Reg64};
 
 /// A guest physical address.
 pub struct PhysAddr(pub u16);
@@ -330,13 +330,13 @@ impl TinyVm {
                 TinyInsn::BranchZero(a, disp) => {
                     bb.cmp(reg_op(a), Imm16::from(0u16));
                     bb.mov(Reg64::rax, Imm64::from(bb_icnt()));
-                    bb.mov(Reg64::rdx, Imm64::from(reenter_pc(disp)));
-
-                    let mut skip_next_pc = Label::new();
-                    // If register is zero, skip setting next pc as reenter pc.
-                    bb.jz(&mut skip_next_pc);
+                    // Default fall-through PC (branch not taken).
                     bb.mov(Reg64::rdx, Imm64::from(reenter_pc(pc)));
-                    bb.bind(&mut skip_next_pc);
+
+                    // Conditionally update PC if condition is ZERO (branch taken).
+                    bb.mov(Reg64::r11, Imm64::from(reenter_pc(disp)));
+                    bb.cmovz(Reg64::rdx, Reg64::r11);
+
                     bb.ret();
                     break 'outer;
                 }
