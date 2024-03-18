@@ -92,7 +92,7 @@ impl Asm {
     // -- Encode utilities.
 
     /// Encode an register-register instruction.
-    pub(crate) fn encode_rr<T: Reg>(&mut self, opc: u8, op1: T, op2: T)
+    pub(crate) fn encode_rr<T: Reg>(&mut self, opc: &[u8], op1: T, op2: T)
     where
         Self: EncodeRR<T>,
     {
@@ -109,7 +109,8 @@ impl Asm {
         let rex = <Self as EncodeRR<T>>::rex(op1, op2);
 
         self.emit_optional(&[prefix, rex]);
-        self.emit(&[opc, modrm]);
+        self.emit(opc);
+        self.emit(&[modrm]);
     }
 
     /// Encode an offset-immediate instruction.
