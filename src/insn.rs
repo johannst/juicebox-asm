@@ -2,6 +2,8 @@
 
 mod add;
 mod call;
+mod cmovnz;
+mod cmovz;
 mod cmp;
 mod dec;
 mod jmp;
@@ -24,6 +26,20 @@ pub trait Add<T, U> {
 pub trait Call<T> {
     /// Emit a call instruction.
     fn call(&mut self, op1: T);
+}
+
+pub trait Cmovnz<T, U> {
+    /// Emit a (conditional) move if not zero instruction.
+    ///
+    /// Move is only commited if (ZF=0).
+    fn cmovnz(&mut self, op1: T, op2: U);
+}
+
+pub trait Cmovz<T, U> {
+    /// Emit a (conditional) move if zero instruction.
+    ///
+    /// Move is only commited if (ZF=1).
+    fn cmovz(&mut self, op1: T, op2: U);
 }
 
 /// Trait for [`cmp`](https://www.felixcloutier.com/x86/cmp) instruction kinds.
