@@ -88,6 +88,7 @@ pub use reg::{Reg16, Reg32, Reg64, Reg8};
 pub use rt::Runtime;
 
 /// Type representing a memory operand.
+#[derive(Clone, Copy)]
 pub enum MemOp {
     /// An indirect memory operand, eg `mov [rax], rcx`.
     Indirect(Reg64),
@@ -123,3 +124,41 @@ impl MemOp {
         }
     }
 }
+
+/// Trait to give size hints for memory operands.
+trait MemOpSized {
+    fn mem_op(&self) -> MemOp;
+}
+
+macro_rules! impl_memop_sized {
+    ($(#[$doc:meta] $name:ident)+) => {
+        $(
+        #[$doc]
+        pub struct $name(MemOp);
+
+        impl $name {
+            /// Create a memory with size hint from a raw memory operand.
+            pub fn from(op: MemOp) -> Self {
+                Self(op)
+            }
+        }
+
+        impl MemOpSized for $name {
+            fn mem_op(&self) -> MemOp {
+                self.0
+            }
+        }
+        )+
+    };
+}
+
+impl_memop_sized!(
+    /// A memory operand with a word (8 bit) size hint.
+    MemOp8
+    /// A memory operand with a word (16 bit) size hint.
+    MemOp16
+    /// A memory operand with a dword (32 bit) size hint.
+    MemOp32
+    /// A memory operand with a qword (64 bit) size hint.
+    MemOp64
+);
