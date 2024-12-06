@@ -6,6 +6,7 @@ mod cmovnz;
 mod cmovz;
 mod cmp;
 mod dec;
+mod inc;
 mod jmp;
 mod jnz;
 mod jz;
@@ -15,6 +16,7 @@ mod pop;
 mod push;
 mod ret;
 mod test;
+mod xor;
 
 /// Trait for [`add`](https://www.felixcloutier.com/x86/add) instruction kinds.
 pub trait Add<T, U> {
@@ -55,6 +57,12 @@ pub trait Cmp<T, U> {
 pub trait Dec<T> {
     /// Emit a decrement instruction.
     fn dec(&mut self, op1: T);
+}
+
+/// Trait for [`inc`](https://www.felixcloutier.com/x86/inc) instruction kinds.
+pub trait Inc<T> {
+    /// Emit a increment instruction.
+    fn inc(&mut self, op1: T);
 }
 
 /// Trait for [`jmp`](https://www.felixcloutier.com/x86/jmp) instruction kinds.
@@ -100,4 +108,10 @@ pub trait Test<T, U> {
     /// Computes the bit-wise logical AND of first operand and the second operand and sets the
     /// `SF`, `ZF`, and `PF` status flags, the result is discarded.
     fn test(&mut self, op1: T, op2: U);
+}
+
+/// Trait for [`xor`](https://www.felixcloutier.com/x86/xor) instruction kinds.
+pub trait Xor<T, U> {
+    /// Emit a xor instruction.
+    fn xor(&mut self, op1: T, op2: U);
 }

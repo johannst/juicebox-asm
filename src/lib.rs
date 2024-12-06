@@ -94,6 +94,9 @@ pub enum MemOp {
 
     /// An indirect memory operand with additional displacement, eg `mov [rax + 0x10], rcx`.
     IndirectDisp(Reg64, i32),
+
+    /// An indirect memory operand in the form base + index, eg `mov [rax + rcx], rdx`.
+    IndirectBaseIndex(Reg64, Reg64),
 }
 
 impl MemOp {
@@ -102,6 +105,21 @@ impl MemOp {
         match self {
             MemOp::Indirect(base) => *base,
             MemOp::IndirectDisp(base, ..) => *base,
+            MemOp::IndirectBaseIndex(base, ..) => *base,
+        }
+    }
+
+    /// Get the index register of the memory operand.
+    fn index(&self) -> Reg64 {
+        // Return zero index register for memory operands w/o index register.
+        let zero_index = Reg64::rax;
+        use reg::Reg;
+        assert_eq!(zero_index.idx(), 0);
+
+        match self {
+            MemOp::Indirect(..) => zero_index,
+            MemOp::IndirectDisp(..) => zero_index,
+            MemOp::IndirectBaseIndex(.., index) => *index,
         }
     }
 }
