@@ -1,0 +1,1 @@
+searchState.loadedDescShard("fib", 0, "Fibonacci example.")
