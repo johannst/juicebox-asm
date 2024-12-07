@@ -64,7 +64,7 @@ The [`examples/`](examples/) folder provides additional examples:
   block* on first execution when running a VM guest image. For reference an
   interepter is also implemented.
 - [`bf_vm.rs`](examples/bf_vm.rs) implements a
-  [brainfuck][https://en.wikipedia.org/wiki/Brainfuck] jit compiler
+  [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) jit compiler
   and interpreter.
 
 ## git hook for local development

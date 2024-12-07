@@ -1,7 +1,7 @@
 //! Brainfuck VM.
 //!
 //! This example implements a simple
-//! [brainfuck][https://en.wikipedia.org/wiki/Brainfuck] interpreter
+//! [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) interpreter
 //! [`BrainfuckInterp`] and a jit compiler [`BrainfuckJit`].
 //!
 //! Brainfuck is an esoteric programming languge existing of 8 commands.
