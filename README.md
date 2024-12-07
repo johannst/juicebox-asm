@@ -63,6 +63,9 @@ The [`examples/`](examples/) folder provides additional examples:
   a simple *jit compiler* which has a *jit cache* and translates each *basic
   block* on first execution when running a VM guest image. For reference an
   interepter is also implemented.
+- [`bf_vm.rs`](examples/bf_vm.rs) implements a
+  [brainfuck][https://en.wikipedia.org/wiki/Brainfuck] jit compiler
+  and interpreter.
 
 ## git hook for local development
 
