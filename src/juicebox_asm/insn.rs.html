@@ -115,7 +115,9 @@
 <a href="#114" id="114">114</a>
 <a href="#115" id="115">115</a>
 <a href="#116" id="116">116</a>
-<a href="#117" id="117">117</a></pre></div><pre class="rust"><code><span class="doccomment">//! Trait definitions of various instructions.
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a></pre></div><pre class="rust"><code><span class="doccomment">//! Trait definitions of various instructions.
 
 </span><span class="kw">mod </span>add;
 <span class="kw">mod </span>call;
@@ -147,14 +149,16 @@
     </span><span class="kw">fn </span>call(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
 }
 
-<span class="kw">pub trait </span>Cmovnz&lt;T, U&gt; {
+<span class="doccomment">/// Trait for [`cmovnz`](https://www.felixcloutier.com/x86/cmovcc) instruction kinds.
+</span><span class="kw">pub trait </span>Cmovnz&lt;T, U&gt; {
     <span class="doccomment">/// Emit a (conditional) move if not zero instruction.
     ///
     /// Move is only commited if (ZF=0).
     </span><span class="kw">fn </span>cmovnz(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T, op2: U);
 }
 
-<span class="kw">pub trait </span>Cmovz&lt;T, U&gt; {
+<span class="doccomment">/// Trait for [`cmovz`](https://www.felixcloutier.com/x86/cmovcc) instruction kinds.
+</span><span class="kw">pub trait </span>Cmovz&lt;T, U&gt; {
     <span class="doccomment">/// Emit a (conditional) move if zero instruction.
     ///
     /// Move is only commited if (ZF=1).
