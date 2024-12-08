@@ -28,3 +28,4 @@ run-examples:
 	cargo run --example add
 	cargo run --example tiny_vm
 	cargo run --example tiny_vm jit
+	cargo run --example bf
