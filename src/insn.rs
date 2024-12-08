@@ -30,6 +30,7 @@ pub trait Call<T> {
     fn call(&mut self, op1: T);
 }
 
+/// Trait for [`cmovnz`](https://www.felixcloutier.com/x86/cmovcc) instruction kinds.
 pub trait Cmovnz<T, U> {
     /// Emit a (conditional) move if not zero instruction.
     ///
@@ -37,6 +38,7 @@ pub trait Cmovnz<T, U> {
     fn cmovnz(&mut self, op1: T, op2: U);
 }
 
+/// Trait for [`cmovz`](https://www.felixcloutier.com/x86/cmovcc) instruction kinds.
 pub trait Cmovz<T, U> {
     /// Emit a (conditional) move if zero instruction.
     ///
