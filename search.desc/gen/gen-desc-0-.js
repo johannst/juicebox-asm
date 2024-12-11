@@ -1,1 +1,0 @@
-searchState.loadedDescShard("gen", 0, "Add example.")
