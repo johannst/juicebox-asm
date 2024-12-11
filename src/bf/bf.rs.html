@@ -290,7 +290,50 @@
 <a href="#289" id="289">289</a>
 <a href="#290" id="290">290</a>
 <a href="#291" id="291">291</a>
-<a href="#292" id="292">292</a></pre></div><pre class="rust"><code><span class="doccomment">//! Brainfuck VM.
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a></pre></div><pre class="rust"><code><span class="doccomment">//! Brainfuck VM.
 //!
 //! This example implements a simple
 //! [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) interpreter
@@ -313,7 +356,9 @@
 <span class="kw">use </span>juicebox_asm::Runtime;
 <span class="kw">use </span>juicebox_asm::{Asm, Imm64, Imm8, Label, MemOp, MemOp8, Reg64, Reg8};
 
-<span class="kw">struct </span>BrainfuckInterp {
+<span class="comment">// -- BRAINFUCK INTERPRETER ----------------------------------------------------
+
+</span><span class="kw">struct </span>BrainfuckInterp {
     pc: usize,
     imem: Vec&lt;char&gt;,
     dptr: usize,
@@ -323,8 +368,9 @@
 
 <span class="kw">impl </span>BrainfuckInterp {
     <span class="kw">fn </span>new(prog: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, String&gt; {
-        <span class="comment">// Do a first pass over the bf program to filter whitespace and detect invalid tokens.
-        // Additionally validate all conditional branches, and compute their branch target.
+        <span class="comment">// Do a first pass over the bf program to filter whitespace and detect
+        // invalid tokens. Additionally validate all conditional branches, and
+        // compute their branch target.
         </span><span class="kw">let </span>(imem, branches) = {
             <span class="comment">// Instruction memory holding the final bf program.
             </span><span class="kw">let </span><span class="kw-2">mut </span>imem = Vec::new();
@@ -422,7 +468,7 @@
     }
 }
 
-<span class="comment">// -- BRAINFUCK JIT --------------------------------------------------------------
+<span class="comment">// -- BRAINFUCK JIT ------------------------------------------------------------
 
 </span><span class="attr">#[cfg(not(any(target_arch = <span class="string">"x86_64"</span>, target_os = <span class="string">"linux"</span>)))]
 </span><span class="macro">compile_error!</span>(<span class="string">"Only supported on x86_64 with SystemV abi"</span>);
@@ -434,7 +480,8 @@
 
 <span class="kw">impl </span>BrainfuckJit {
     <span class="kw">fn </span>new(prog: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, String&gt; {
-        <span class="comment">// Do a first pass over the bf program to filter whitespace and detect invalid tokens.
+        <span class="comment">// Do a first pass over the bf program to filter whitespace and detect
+        // invalid tokens.
         </span><span class="kw">let </span>imem = prog
             .chars()
             .filter(|c| !c.is_whitespace())
@@ -460,25 +507,25 @@
 <span class="kw">fn </span>run_jit(prog: <span class="kw-2">&amp;</span>str) {
     <span class="kw">let </span><span class="kw-2">mut </span>vm = BrainfuckJit::new(prog).unwrap();
 
-    <span class="comment">// Use callee saved registers to hold vm state, such that we don't
-    // need to save any state before calling out to putchar.
+    <span class="comment">// Use callee saved registers to hold vm state, such that we don't need to
+    // save any state before calling out to putchar.
     </span><span class="kw">let </span>dmem_base = Reg64::rbx;
     <span class="kw">let </span>dmem_idx = Reg64::r12;
 
     <span class="kw">let </span><span class="kw-2">mut </span>asm = Asm::new();
-    <span class="comment">// Move data memory pointer (argument on jit entry) into correct
-    // register.
+    <span class="comment">// Move data memory pointer (argument on jit entry) into correct register.
     </span>asm.mov(dmem_base, Reg64::rdi);
     <span class="comment">// Clear data memory index.
     </span>asm.xor(dmem_idx, dmem_idx);
 
-    <span class="comment">// A stack of label pairs, used to link up forward and backward
-    // jumps for a given '[]' pair.
+    <span class="comment">// A stack of label pairs, used to link up forward and backward jumps for a
+    // given '[]' pair.
     </span><span class="kw">let </span><span class="kw-2">mut </span>label_stack = Vec::new();
 
     <span class="comment">// Generate code for each instruction in the bf program.
-    </span><span class="kw">for </span>insn <span class="kw">in </span>vm.imem {
-        <span class="kw">match </span>insn {
+    </span><span class="kw">let </span><span class="kw-2">mut </span>pc = <span class="number">0</span>;
+    <span class="kw">while </span>pc &lt; vm.imem.len() {
+        <span class="kw">match </span>vm.imem[pc] {
             <span class="string">'&gt;' </span>=&gt; {
                 <span class="comment">// TODO: generate runtime bounds check.
                 </span>asm.inc(dmem_idx);
@@ -488,18 +535,53 @@
                 </span>asm.dec(dmem_idx);
             }
             <span class="string">'+' </span>=&gt; {
-                asm.inc(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx)));
+                <span class="comment">// Apply optimization to fold consecutive '+' instructions to a
+                // single add instruction during compile time.
+
+                </span><span class="kw">match </span>vm.imem[pc..].iter().take_while(|&amp;&amp;i| i.eq(<span class="kw-2">&amp;</span><span class="string">'+'</span>)).count() {
+                    <span class="number">1 </span>=&gt; asm.inc(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx))),
+                    cnt <span class="kw">if </span>cnt &lt;= i8::MAX <span class="kw">as </span>usize =&gt; {
+                        <span class="comment">// For add m64, imm8, the immediate is sign-extend and
+                        // hence treated as signed.
+                        </span>asm.add(
+                            MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                            Imm8::from(cnt <span class="kw">as </span>u8),
+                        );
+
+                        <span class="comment">// Advance pc, but account for pc increment at the end
+                        // of the loop.
+                        </span>pc += cnt - <span class="number">1</span>;
+                    }
+                    cnt @ <span class="kw">_ </span>=&gt; <span class="macro">unimplemented!</span>(<span class="string">"cnt={cnt} oob, add with larger imm"</span>),
+                }
             }
             <span class="string">'-' </span>=&gt; {
-                asm.dec(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx)));
+                <span class="comment">// Apply optimization to fold consecutive '-' instructions to a
+                // single sub instruction during compile time.
+
+                </span><span class="kw">match </span>vm.imem[pc..].iter().take_while(|&amp;&amp;i| i.eq(<span class="kw-2">&amp;</span><span class="string">'-'</span>)).count() {
+                    <span class="number">1 </span>=&gt; asm.dec(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx))),
+                    cnt <span class="kw">if </span>cnt &lt;= i8::MAX <span class="kw">as </span>usize =&gt; {
+                        <span class="comment">// For sub m64, imm8, the immediate is sign-extend and
+                        // hence treated as signed.
+                        </span>asm.sub(
+                            MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                            Imm8::from(cnt <span class="kw">as </span>u8),
+                        );
+
+                        <span class="comment">// Advance pc, but account for pc increment at the end
+                        // of the loop.
+                        </span>pc += cnt - <span class="number">1</span>;
+                    }
+                    cnt @ <span class="kw">_ </span>=&gt; <span class="macro">unimplemented!</span>(<span class="string">"cnt={cnt} oob, sub with larger imm"</span>),
+                }
             }
             <span class="string">'.' </span>=&gt; {
-                <span class="comment">// Load data memory from active cell into di register,
-                // which is the first argument register according to
-                // the SystemV abi, then call into putchar. Since we
-                // stored all out vm state in callee saved registers
-                // we don't need to save any registers before the
-                // call.
+                <span class="comment">// Load data memory from active cell into di register, which is
+                // the first argument register according to the SystemV abi,
+                // then call into putchar. Since we stored all out vm state in
+                // callee saved registers we don't need to save any registers
+                // before the call.
                 </span>asm.mov(Reg8::dil, MemOp::IndirectBaseIndex(dmem_base, dmem_idx));
                 asm.mov(Reg64::rax, Imm64::from(putchar <span class="kw">as </span>usize));
                 asm.call(Reg64::rax);
@@ -521,8 +603,8 @@
                 );
                 asm.jz(<span class="kw-2">&amp;mut </span>label_pair.<span class="number">0</span>);
 
-                <span class="comment">// Bind label_pair.1 after the jump instruction, which
-                // will be the branch target for the matching ']'.
+                <span class="comment">// Bind label_pair.1 after the jump instruction, which will be
+                // the branch target for the matching ']'.
                 </span>asm.bind(<span class="kw-2">&amp;mut </span>label_pair.<span class="number">1</span>);
             }
             <span class="string">']' </span>=&gt; {
@@ -530,8 +612,7 @@
                     .pop()
                     .expect(<span class="string">"encountered un-balanced brackets, found ']' without matching '['"</span>);
 
-                <span class="comment">// Goto label_pair.1 if data memory at active cell is
-                // not 0.
+                <span class="comment">// Goto label_pair.1 if data memory at active cell is not 0.
                 //   if vm.dmem[vm.dptr] != 0 goto label_pair.1
                 </span>asm.cmp(
                     MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
@@ -539,12 +620,15 @@
                 );
                 asm.jnz(<span class="kw-2">&amp;mut </span>label_pair.<span class="number">1</span>);
 
-                <span class="comment">// Bind label_pair.0 after the jump instruction, which
-                // is the branch target for the matching '['.
+                <span class="comment">// Bind label_pair.0 after the jump instruction, which is the
+                // branch target for the matching '['.
                 </span>asm.bind(<span class="kw-2">&amp;mut </span>label_pair.<span class="number">0</span>);
             }
             <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
         }
+
+        <span class="comment">// Increment pc to next instruction.
+        </span>pc += <span class="number">1</span>;
     }
 
     <span class="comment">// Return from bf program.
@@ -560,7 +644,9 @@
     bf_entry(<span class="kw-2">&amp;mut </span>vm.dmem <span class="kw">as </span><span class="kw-2">*mut </span>u8);
 }
 
-<span class="kw">fn </span>main() {
+<span class="comment">// -- MAIN ---------------------------------------------------------------------
+
+</span><span class="kw">fn </span>main() {
     <span class="comment">// https://en.wikipedia.org/wiki/Brainfuck#Adding_two_values
     //let inp = "++&gt;+++++ [&lt;+&gt;-] ++++++++[&lt;++++++&gt;-]&lt;.";
     //println!("add-print-7 (wikipedia.org) - interp");

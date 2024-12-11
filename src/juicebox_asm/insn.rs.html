@@ -117,7 +117,14 @@
 <a href="#116" id="116">116</a>
 <a href="#117" id="117">117</a>
 <a href="#118" id="118">118</a>
-<a href="#119" id="119">119</a></pre></div><pre class="rust"><code><span class="doccomment">//! Trait definitions of various instructions.
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a></pre></div><pre class="rust"><code><span class="doccomment">//! Trait definitions of various instructions.
 
 </span><span class="kw">mod </span>add;
 <span class="kw">mod </span>call;
@@ -134,6 +141,7 @@
 <span class="kw">mod </span>pop;
 <span class="kw">mod </span>push;
 <span class="kw">mod </span>ret;
+<span class="kw">mod </span>sub;
 <span class="kw">mod </span>test;
 <span class="kw">mod </span>xor;
 
@@ -210,16 +218,22 @@
     </span><span class="kw">fn </span>mov(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T, op2: U);
 }
 
+<span class="doccomment">/// Trait for [`pop`](https://www.felixcloutier.com/x86/pop) instruction kinds.
+</span><span class="kw">pub trait </span>Pop&lt;T&gt; {
+    <span class="doccomment">/// Emit a pop instruction.
+    </span><span class="kw">fn </span>pop(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
+}
+
 <span class="doccomment">/// Trait for [`push`](https://www.felixcloutier.com/x86/push) instruction kinds.
 </span><span class="kw">pub trait </span>Push&lt;T&gt; {
     <span class="doccomment">/// Emit a push instruction.
     </span><span class="kw">fn </span>push(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
 }
 
-<span class="doccomment">/// Trait for [`pop`](https://www.felixcloutier.com/x86/pop) instruction kinds.
-</span><span class="kw">pub trait </span>Pop&lt;T&gt; {
-    <span class="doccomment">/// Emit a pop instruction.
-    </span><span class="kw">fn </span>pop(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T);
+<span class="doccomment">/// Trait for [`sub`](https://www.felixcloutier.com/x86/sub) instruction kinds.
+</span><span class="kw">pub trait </span>Sub&lt;T, U&gt; {
+    <span class="doccomment">/// Emit an sub instruction.
+    </span><span class="kw">fn </span>sub(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: T, op2: U);
 }
 
 <span class="doccomment">/// Trait for [`test`](https://www.felixcloutier.com/x86/test) instruction kinds.
