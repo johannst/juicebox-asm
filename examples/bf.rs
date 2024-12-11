@@ -188,8 +188,9 @@ fn run_jit(prog: &str) {
     let mut label_stack = Vec::new();
 
     // Generate code for each instruction in the bf program.
-    for insn in vm.imem {
-        match insn {
+    let mut pc = 0;
+    while pc < vm.imem.len() {
+        match vm.imem[pc] {
             '>' => {
                 // TODO: generate runtime bounds check.
                 asm.inc(dmem_idx);
@@ -199,10 +200,46 @@ fn run_jit(prog: &str) {
                 asm.dec(dmem_idx);
             }
             '+' => {
-                asm.inc(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx)));
+                // Apply optimization to fold consecutive '+' instructions to a
+                // single add instruction during compile time.
+
+                match vm.imem[pc..].iter().take_while(|&&i| i.eq(&'+')).count() {
+                    1 => asm.inc(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx))),
+                    cnt if cnt <= i8::MAX as usize => {
+                        // For add m64, imm8, the immediate is sign-extend and
+                        // hence treated as signed.
+                        asm.add(
+                            MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                            Imm8::from(cnt as u8),
+                        );
+
+                        // Advance pc, but account for pc increment at the end
+                        // of the loop.
+                        pc += cnt - 1;
+                    }
+                    cnt @ _ => unimplemented!("cnt={cnt} oob, add with larger imm"),
+                }
             }
             '-' => {
-                asm.dec(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx)));
+                // Apply optimization to fold consecutive '-' instructions to a
+                // single sub instruction during compile time.
+
+                match vm.imem[pc..].iter().take_while(|&&i| i.eq(&'-')).count() {
+                    1 => asm.dec(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx))),
+                    cnt if cnt <= i8::MAX as usize => {
+                        // For sub m64, imm8, the immediate is sign-extend and
+                        // hence treated as signed.
+                        asm.sub(
+                            MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                            Imm8::from(cnt as u8),
+                        );
+
+                        // Advance pc, but account for pc increment at the end
+                        // of the loop.
+                        pc += cnt - 1;
+                    }
+                    cnt @ _ => unimplemented!("cnt={cnt} oob, sub with larger imm"),
+                }
             }
             '.' => {
                 // Load data memory from active cell into di register, which is
@@ -254,6 +291,9 @@ fn run_jit(prog: &str) {
             }
             _ => unreachable!(),
         }
+
+        // Increment pc to next instruction.
+        pc += 1;
     }
 
     // Return from bf program.
