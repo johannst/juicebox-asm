@@ -1,5 +1,5 @@
 use super::Add;
-use crate::{Asm, Imm16, MemOp, Reg16, Reg32, Reg64};
+use crate::{Asm, Imm16, Imm8, MemOp, Reg16, Reg32, Reg64};
 
 impl Add<Reg64, Reg64> for Asm {
     fn add(&mut self, op1: Reg64, op2: Reg64) {
@@ -22,6 +22,12 @@ impl Add<MemOp, Reg64> for Asm {
 impl Add<MemOp, Reg16> for Asm {
     fn add(&mut self, op1: MemOp, op2: Reg16) {
         self.encode_mr(0x01, op1, op2);
+    }
+}
+
+impl Add<MemOp, Imm8> for Asm {
+    fn add(&mut self, op1: MemOp, op2: Imm8) {
+        self.encode_mi(0x83, 0, op1, op2);
     }
 }
 

@@ -15,6 +15,7 @@ mod nop;
 mod pop;
 mod push;
 mod ret;
+mod sub;
 mod test;
 mod xor;
 
@@ -91,16 +92,22 @@ pub trait Mov<T, U> {
     fn mov(&mut self, op1: T, op2: U);
 }
 
+/// Trait for [`pop`](https://www.felixcloutier.com/x86/pop) instruction kinds.
+pub trait Pop<T> {
+    /// Emit a pop instruction.
+    fn pop(&mut self, op1: T);
+}
+
 /// Trait for [`push`](https://www.felixcloutier.com/x86/push) instruction kinds.
 pub trait Push<T> {
     /// Emit a push instruction.
     fn push(&mut self, op1: T);
 }
 
-/// Trait for [`pop`](https://www.felixcloutier.com/x86/pop) instruction kinds.
-pub trait Pop<T> {
-    /// Emit a pop instruction.
-    fn pop(&mut self, op1: T);
+/// Trait for [`sub`](https://www.felixcloutier.com/x86/sub) instruction kinds.
+pub trait Sub<T, U> {
+    /// Emit an sub instruction.
+    fn sub(&mut self, op1: T, op2: U);
 }
 
 /// Trait for [`test`](https://www.felixcloutier.com/x86/test) instruction kinds.
