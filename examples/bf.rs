@@ -21,6 +21,8 @@ use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
 use juicebox_asm::{Asm, Imm64, Imm8, Label, MemOp, MemOp8, Reg64, Reg8};
 
+// -- BRAINFUCK INTERPRETER ----------------------------------------------------
+
 struct BrainfuckInterp {
     pc: usize,
     imem: Vec<char>,
@@ -31,8 +33,9 @@ struct BrainfuckInterp {
 
 impl BrainfuckInterp {
     fn new(prog: &str) -> Result<Self, String> {
-        // Do a first pass over the bf program to filter whitespace and detect invalid tokens.
-        // Additionally validate all conditional branches, and compute their branch target.
+        // Do a first pass over the bf program to filter whitespace and detect
+        // invalid tokens. Additionally validate all conditional branches, and
+        // compute their branch target.
         let (imem, branches) = {
             // Instruction memory holding the final bf program.
             let mut imem = Vec::new();
@@ -130,7 +133,7 @@ fn run_interp(prog: &str) {
     }
 }
 
-// -- BRAINFUCK JIT --------------------------------------------------------------
+// -- BRAINFUCK JIT ------------------------------------------------------------
 
 #[cfg(not(any(target_arch = "x86_64", target_os = "linux")))]
 compile_error!("Only supported on x86_64 with SystemV abi");
@@ -142,7 +145,8 @@ struct BrainfuckJit {
 
 impl BrainfuckJit {
     fn new(prog: &str) -> Result<Self, String> {
-        // Do a first pass over the bf program to filter whitespace and detect invalid tokens.
+        // Do a first pass over the bf program to filter whitespace and detect
+        // invalid tokens.
         let imem = prog
             .chars()
             .filter(|c| !c.is_whitespace())
@@ -168,20 +172,19 @@ extern "C" fn putchar(c: u8) {
 fn run_jit(prog: &str) {
     let mut vm = BrainfuckJit::new(prog).unwrap();
 
-    // Use callee saved registers to hold vm state, such that we don't
-    // need to save any state before calling out to putchar.
+    // Use callee saved registers to hold vm state, such that we don't need to
+    // save any state before calling out to putchar.
     let dmem_base = Reg64::rbx;
     let dmem_idx = Reg64::r12;
 
     let mut asm = Asm::new();
-    // Move data memory pointer (argument on jit entry) into correct
-    // register.
+    // Move data memory pointer (argument on jit entry) into correct register.
     asm.mov(dmem_base, Reg64::rdi);
     // Clear data memory index.
     asm.xor(dmem_idx, dmem_idx);
 
-    // A stack of label pairs, used to link up forward and backward
-    // jumps for a given '[]' pair.
+    // A stack of label pairs, used to link up forward and backward jumps for a
+    // given '[]' pair.
     let mut label_stack = Vec::new();
 
     // Generate code for each instruction in the bf program.
@@ -202,12 +205,11 @@ fn run_jit(prog: &str) {
                 asm.dec(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx)));
             }
             '.' => {
-                // Load data memory from active cell into di register,
-                // which is the first argument register according to
-                // the SystemV abi, then call into putchar. Since we
-                // stored all out vm state in callee saved registers
-                // we don't need to save any registers before the
-                // call.
+                // Load data memory from active cell into di register, which is
+                // the first argument register according to the SystemV abi,
+                // then call into putchar. Since we stored all out vm state in
+                // callee saved registers we don't need to save any registers
+                // before the call.
                 asm.mov(Reg8::dil, MemOp::IndirectBaseIndex(dmem_base, dmem_idx));
                 asm.mov(Reg64::rax, Imm64::from(putchar as usize));
                 asm.call(Reg64::rax);
@@ -229,8 +231,8 @@ fn run_jit(prog: &str) {
                 );
                 asm.jz(&mut label_pair.0);
 
-                // Bind label_pair.1 after the jump instruction, which
-                // will be the branch target for the matching ']'.
+                // Bind label_pair.1 after the jump instruction, which will be
+                // the branch target for the matching ']'.
                 asm.bind(&mut label_pair.1);
             }
             ']' => {
@@ -238,8 +240,7 @@ fn run_jit(prog: &str) {
                     .pop()
                     .expect("encountered un-balanced brackets, found ']' without matching '['");
 
-                // Goto label_pair.1 if data memory at active cell is
-                // not 0.
+                // Goto label_pair.1 if data memory at active cell is not 0.
                 //   if vm.dmem[vm.dptr] != 0 goto label_pair.1
                 asm.cmp(
                     MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
@@ -247,8 +248,8 @@ fn run_jit(prog: &str) {
                 );
                 asm.jnz(&mut label_pair.1);
 
-                // Bind label_pair.0 after the jump instruction, which
-                // is the branch target for the matching '['.
+                // Bind label_pair.0 after the jump instruction, which is the
+                // branch target for the matching '['.
                 asm.bind(&mut label_pair.0);
             }
             _ => unreachable!(),
@@ -267,6 +268,8 @@ fn run_jit(prog: &str) {
     let bf_entry = unsafe { rt.add_code::<extern "C" fn(*mut u8)>(asm.into_code()) };
     bf_entry(&mut vm.dmem as *mut u8);
 }
+
+// -- MAIN ---------------------------------------------------------------------
 
 fn main() {
     // https://en.wikipedia.org/wiki/Brainfuck#Adding_two_values
