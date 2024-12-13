@@ -207,9 +207,7 @@ fn run_jit(prog: &str) {
                     1 => {
                         asm.inc(Mem8::indirect_base_index(dmem_base, dmem_idx));
                     }
-                    cnt if cnt <= i8::MAX as usize => {
-                        // For add m64, imm8, the immediate is sign-extend and
-                        // hence treated as signed.
+                    cnt if cnt <= u8::MAX as usize => {
                         asm.add(
                             Mem8::indirect_base_index(dmem_base, dmem_idx),
                             Imm8::from(cnt as u8),
@@ -230,9 +228,7 @@ fn run_jit(prog: &str) {
                     1 => {
                         asm.dec(Mem8::indirect_base_index(dmem_base, dmem_idx));
                     }
-                    cnt if cnt <= i8::MAX as usize => {
-                        // For sub m64, imm8, the immediate is sign-extend and
-                        // hence treated as signed.
+                    cnt if cnt <= u8::MAX as usize => {
                         asm.sub(
                             Mem8::indirect_base_index(dmem_base, dmem_idx),
                             Imm8::from(cnt as u8),
