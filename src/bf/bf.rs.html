@@ -402,10 +402,16 @@
 <a href="#401" id="401">401</a>
 <a href="#402" id="402">402</a>
 <a href="#403" id="403">403</a>
-<a href="#404" id="404">404</a></pre></div><pre class="rust"><code><span class="doccomment">//! Brainfuck VM.
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a></pre></div><pre class="rust"><code><span class="doccomment">//! Brainfuck VM.
 //!
-//! This example implements a simple
-//! [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) interpreter
+//! This example implements a simple [brainfuck][bf] interpreter
 //! [`BrainfuckInterp`] and a jit compiler [`BrainfuckJit`].
 //!
 //! Brainfuck is an esoteric programming languge existing of 8 commands.
@@ -415,8 +421,16 @@
 //! - `-` decrement data at current data pointer.
 //! - `.` output data at current data pointer.
 //! - `,` read input and store at current data pointer.
-//! - `[` jump behind matching ']' if data at data pointer is zero.
-//! - `]` jump behind matching '[' if data at data pointer is non-zero.
+//! - `[` jump behind matching `]` if data at data pointer is zero.
+//! - `]` jump behind matching `[` if data at data pointer is non-zero.
+//!
+//! The following is the `hello-world` program from [wikipedia][hw].
+//! ```
+//! ++++++++[&gt;++++[&gt;++&gt;+++&gt;+++&gt;+&lt;&lt;&lt;&lt;-]&gt;+&gt;+&gt;-&gt;&gt;+[&lt;]&lt;-]&gt;&gt;.&gt;---.+++++++..+++.&gt;&gt;.&lt;-.&lt;.+++.------.--------.&gt;&gt;+.&gt;++.
+//! ```
+//!
+//! [bf]: https://en.wikipedia.org/wiki/Brainfuck
+//! [hw]: https://en.wikipedia.org/wiki/Brainfuck#Hello_World!
 
 </span><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::io::Write;
@@ -439,7 +453,7 @@
     <span class="kw">fn </span>new(prog: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, String&gt; {
         <span class="comment">// Do a first pass over the bf program to filter whitespace and detect
         // invalid tokens. Additionally validate all conditional branches, and
-        // compute their branch target.
+        // compute their branch targets.
         </span><span class="kw">let </span>(imem, branches) = {
             <span class="comment">// Instruction memory holding the final bf program.
             </span><span class="kw">let </span><span class="kw-2">mut </span>imem = Vec::new();
@@ -591,8 +605,8 @@
 
     <span class="comment">// Move data memory pointer (argument on jit entry) into correct register.
     </span>asm.mov(dmem_base, Reg64::rdi);
-    <span class="comment">// Move data memory size into correct register.
-    </span>asm.mov(dmem_size, Reg64::rsi);
+    <span class="comment">// Move data memory size (compile time constant) into correct register.
+    </span>asm.mov(dmem_size, Imm64::from(vm.dmem.len()));
     <span class="comment">// Clear data memory index.
     </span>asm.xor(dmem_idx, dmem_idx);
 
@@ -720,11 +734,11 @@
         </span>pc += <span class="number">1</span>;
     }
 
-    <span class="kw">let </span><span class="kw-2">mut </span>ret_epilogue = Label::new();
+    <span class="kw">let </span><span class="kw-2">mut </span>epilogue = Label::new();
 
     <span class="comment">// Successful return from bf program.
     </span>asm.xor(Reg64::rax, Reg64::rax);
-    asm.bind(<span class="kw-2">&amp;mut </span>ret_epilogue);
+    asm.bind(<span class="kw-2">&amp;mut </span>epilogue);
     <span class="comment">// Restore callee saved registers before returning from jit.
     </span>asm.pop(dmem_idx);
     asm.pop(dmem_size);
@@ -734,12 +748,12 @@
     <span class="comment">// Return because of data pointer overflow.
     </span>asm.bind(<span class="kw-2">&amp;mut </span>oob_ov);
     asm.mov(Reg64::rax, Imm64::from(<span class="number">1</span>));
-    asm.jmp(<span class="kw-2">&amp;mut </span>ret_epilogue);
+    asm.jmp(<span class="kw-2">&amp;mut </span>epilogue);
 
     <span class="comment">// Return because of data pointer underflow.
     </span>asm.bind(<span class="kw-2">&amp;mut </span>oob_uv);
     asm.mov(Reg64::rax, Imm64::from(<span class="number">2</span>));
-    asm.jmp(<span class="kw-2">&amp;mut </span>ret_epilogue);
+    asm.jmp(<span class="kw-2">&amp;mut </span>epilogue);
 
     <span class="kw">if </span>!label_stack.is_empty() {
         <span class="macro">panic!</span>(<span class="string">"encountered un-balanced brackets, left-over '[' after jitting bf program"</span>)
@@ -747,11 +761,11 @@
 
     <span class="comment">// Get function pointer to jitted bf program.
     </span><span class="kw">let </span><span class="kw-2">mut </span>rt = Runtime::new();
-    <span class="kw">let </span>bf_entry = <span class="kw">unsafe </span>{ rt.add_code::&lt;<span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>(<span class="kw-2">*mut </span>u8, usize) -&gt; u64&gt;(asm.into_code()) };
+    <span class="kw">let </span>bf_entry = <span class="kw">unsafe </span>{ rt.add_code::&lt;<span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>(<span class="kw-2">*mut </span>u8) -&gt; u64&gt;(asm.into_code()) };
 
     <span class="comment">// Execute jitted bf program.
-    </span><span class="kw">match </span>bf_entry(<span class="kw-2">&amp;mut </span>vm.dmem <span class="kw">as </span><span class="kw-2">*mut </span>u8, vm.dmem.len()) {
-        <span class="number">0 </span>=&gt; {}
+    </span><span class="kw">match </span>bf_entry(<span class="kw-2">&amp;mut </span>vm.dmem <span class="kw">as </span><span class="kw-2">*mut </span>u8) {
+        <span class="number">0 </span>=&gt; { <span class="comment">/* success */ </span>}
         <span class="number">1 </span>=&gt; <span class="macro">panic!</span>(<span class="string">"oob: data pointer overflow"</span>),
         <span class="number">2 </span>=&gt; <span class="macro">panic!</span>(<span class="string">"oob: data pointer underflow"</span>),
         <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
