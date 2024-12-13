@@ -37,7 +37,7 @@
 <a href="#36" id="36">36</a>
 <a href="#37" id="37">37</a>
 <a href="#38" id="38">38</a></pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">super</span>::Inc;
-<span class="kw">use crate</span>::{Asm, MemOp16, MemOp32, MemOp64, MemOp8, Reg32, Reg64};
+<span class="kw">use crate</span>::{Asm, Mem16, Mem32, Mem64, Mem8, Reg32, Reg64};
 
 <span class="kw">impl </span>Inc&lt;Reg64&gt; <span class="kw">for </span>Asm {
     <span class="kw">fn </span>inc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: Reg64) {
@@ -51,26 +51,26 @@
     }
 }
 
-<span class="kw">impl </span>Inc&lt;MemOp8&gt; <span class="kw">for </span>Asm {
-    <span class="kw">fn </span>inc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: MemOp8) {
+<span class="kw">impl </span>Inc&lt;Mem8&gt; <span class="kw">for </span>Asm {
+    <span class="kw">fn </span>inc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: Mem8) {
         <span class="self">self</span>.encode_m(<span class="number">0xfe</span>, <span class="number">0</span>, op1);
     }
 }
 
-<span class="kw">impl </span>Inc&lt;MemOp16&gt; <span class="kw">for </span>Asm {
-    <span class="kw">fn </span>inc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: MemOp16) {
+<span class="kw">impl </span>Inc&lt;Mem16&gt; <span class="kw">for </span>Asm {
+    <span class="kw">fn </span>inc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: Mem16) {
         <span class="self">self</span>.encode_m(<span class="number">0xff</span>, <span class="number">0</span>, op1);
     }
 }
 
-<span class="kw">impl </span>Inc&lt;MemOp32&gt; <span class="kw">for </span>Asm {
-    <span class="kw">fn </span>inc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: MemOp32) {
+<span class="kw">impl </span>Inc&lt;Mem32&gt; <span class="kw">for </span>Asm {
+    <span class="kw">fn </span>inc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: Mem32) {
         <span class="self">self</span>.encode_m(<span class="number">0xff</span>, <span class="number">0</span>, op1);
     }
 }
 
-<span class="kw">impl </span>Inc&lt;MemOp64&gt; <span class="kw">for </span>Asm {
-    <span class="kw">fn </span>inc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: MemOp64) {
+<span class="kw">impl </span>Inc&lt;Mem64&gt; <span class="kw">for </span>Asm {
+    <span class="kw">fn </span>inc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, op1: Mem64) {
         <span class="self">self</span>.encode_m(<span class="number">0xff</span>, <span class="number">0</span>, op1);
     }
 }

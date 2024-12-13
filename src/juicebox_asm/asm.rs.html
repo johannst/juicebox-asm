@@ -450,17 +450,11 @@
 <a href="#449" id="449">449</a>
 <a href="#450" id="450">450</a>
 <a href="#451" id="451">451</a>
-<a href="#452" id="452">452</a>
-<a href="#453" id="453">453</a>
-<a href="#454" id="454">454</a>
-<a href="#455" id="455">455</a>
-<a href="#456" id="456">456</a>
-<a href="#457" id="457">457</a>
-<a href="#458" id="458">458</a>
-<a href="#459" id="459">459</a></pre></div><pre class="rust"><code><span class="doccomment">//! The `x64` jit assembler.
+<a href="#452" id="452">452</a></pre></div><pre class="rust"><code><span class="doccomment">//! The `x64` jit assembler.
 
 </span><span class="kw">use crate</span>::<span class="kw-2">*</span>;
 <span class="kw">use </span>imm::Imm;
+<span class="kw">use </span>mem::{AddrMode, Mem};
 <span class="kw">use </span>reg::Reg;
 
 <span class="doccomment">/// Encode the `REX` byte.
@@ -614,24 +608,22 @@
     }
 
     <span class="doccomment">/// Encode a memory operand instruction.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_m&lt;T: MemOpSized&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: u8, opc_ext: u8, op1: T)
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_m&lt;T: Mem&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: u8, opc_ext: u8, op1: T)
     <span class="kw">where
         </span><span class="self">Self</span>: EncodeM&lt;T&gt;,
     {
-        <span class="kw">let </span>op1 = op1.mem_op();
-
         <span class="comment">// M operand encoding.
         //   op1 -&gt; modrm.rm
-        </span><span class="kw">let </span>(mode, rm) = <span class="kw">match </span>op1 {
-            MemOp::Indirect(..) =&gt; {
+        </span><span class="kw">let </span>(mode, rm) = <span class="kw">match </span>op1.mode() {
+            AddrMode::Indirect =&gt; {
                 <span class="macro">assert!</span>(!op1.base().need_sib() &amp;&amp; !op1.base().is_pc_rel());
                 (<span class="number">0b00</span>, op1.base().idx())
             }
-            MemOp::IndirectDisp(..) =&gt; {
+            AddrMode::IndirectDisp =&gt; {
                 <span class="macro">assert!</span>(!op1.base().need_sib());
                 (<span class="number">0b10</span>, op1.base().idx())
             }
-            MemOp::IndirectBaseIndex(..) =&gt; {
+            AddrMode::IndirectBaseIndex =&gt; {
                 <span class="macro">assert!</span>(!op1.base().is_pc_rel());
                 <span class="comment">// Using rsp as index register is interpreted as just base w/o offset.
                 //   https://wiki.osdev.org/X86-64_Instruction_Encoding#32.2F64-bit_addressing_2
@@ -652,31 +644,33 @@
 
         <span class="self">self</span>.emit_optional(<span class="kw-2">&amp;</span>[prefix, rex]);
         <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[opc, modrm]);
-        <span class="kw">match </span>op1 {
-            MemOp::Indirect(..) =&gt; {}
-            MemOp::IndirectDisp(<span class="kw">_</span>, disp) =&gt; <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>disp.to_ne_bytes()),
-            MemOp::IndirectBaseIndex(base, index) =&gt; <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[sib(<span class="number">0</span>, index.idx(), base.idx())]),
+        <span class="kw">match </span>op1.mode() {
+            AddrMode::Indirect =&gt; {}
+            AddrMode::IndirectDisp =&gt; <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>op1.disp().to_ne_bytes()),
+            AddrMode::IndirectBaseIndex =&gt; {
+                <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[sib(<span class="number">0</span>, op1.index().idx(), op1.base().idx())])
+            }
         }
     }
 
     <span class="doccomment">/// Encode a memory-immediate instruction.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_mi&lt;T: Imm&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: u8, opc_ext: u8, op1: MemOp, op2: T)
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_mi&lt;M: Mem, T: Imm&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: u8, opc_ext: u8, op1: M, op2: T)
     <span class="kw">where
-        </span><span class="self">Self</span>: EncodeMI&lt;T&gt;,
+        </span><span class="self">Self</span>: EncodeMI&lt;M&gt;,
     {
         <span class="comment">// MI operand encoding.
         //   op1 -&gt; modrm.rm
         //   op2 -&gt; imm
-        </span><span class="kw">let </span>(mode, rm) = <span class="kw">match </span>op1 {
-            MemOp::Indirect(..) =&gt; {
+        </span><span class="kw">let </span>(mode, rm) = <span class="kw">match </span>op1.mode() {
+            AddrMode::Indirect =&gt; {
                 <span class="macro">assert!</span>(!op1.base().need_sib() &amp;&amp; !op1.base().is_pc_rel());
                 (<span class="number">0b00</span>, op1.base().idx())
             }
-            MemOp::IndirectDisp(..) =&gt; {
+            AddrMode::IndirectDisp =&gt; {
                 <span class="macro">assert!</span>(!op1.base().need_sib());
                 (<span class="number">0b10</span>, op1.base().idx())
             }
-            MemOp::IndirectBaseIndex(..) =&gt; {
+            AddrMode::IndirectBaseIndex =&gt; {
                 <span class="macro">assert!</span>(!op1.base().is_pc_rel());
                 <span class="comment">// Using rsp as index register is interpreted as just base w/o offset.
                 //   https://wiki.osdev.org/X86-64_Instruction_Encoding#32.2F64-bit_addressing_2
@@ -692,37 +686,39 @@
             </span>rm,      <span class="comment">/* rm */
         </span>);
 
-        <span class="kw">let </span>prefix = &lt;<span class="self">Self </span><span class="kw">as </span>EncodeMI&lt;T&gt;&gt;::legacy_prefix();
-        <span class="kw">let </span>rex = &lt;<span class="self">Self </span><span class="kw">as </span>EncodeMI&lt;T&gt;&gt;::rex(<span class="kw-2">&amp;</span>op1);
+        <span class="kw">let </span>prefix = &lt;<span class="self">Self </span><span class="kw">as </span>EncodeMI&lt;M&gt;&gt;::legacy_prefix();
+        <span class="kw">let </span>rex = &lt;<span class="self">Self </span><span class="kw">as </span>EncodeMI&lt;M&gt;&gt;::rex(<span class="kw-2">&amp;</span>op1);
 
         <span class="self">self</span>.emit_optional(<span class="kw-2">&amp;</span>[prefix, rex]);
         <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[opc, modrm]);
-        <span class="kw">match </span>op1 {
-            MemOp::Indirect(..) =&gt; {}
-            MemOp::IndirectDisp(<span class="kw">_</span>, disp) =&gt; <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>disp.to_ne_bytes()),
-            MemOp::IndirectBaseIndex(base, index) =&gt; <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[sib(<span class="number">0</span>, index.idx(), base.idx())]),
+        <span class="kw">match </span>op1.mode() {
+            AddrMode::Indirect =&gt; {}
+            AddrMode::IndirectDisp =&gt; <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>op1.disp().to_ne_bytes()),
+            AddrMode::IndirectBaseIndex =&gt; {
+                <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[sib(<span class="number">0</span>, op1.index().idx(), op1.base().idx())])
+            }
         }
         <span class="self">self</span>.emit(op2.bytes());
     }
 
     <span class="doccomment">/// Encode a memory-register instruction.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_mr&lt;T: Reg&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: u8, op1: MemOp, op2: T)
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_mr&lt;M: Mem, T: Reg&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: u8, op1: M, op2: T)
     <span class="kw">where
-        </span><span class="self">Self</span>: EncodeMR&lt;T&gt;,
+        </span><span class="self">Self</span>: EncodeMR&lt;M&gt;,
     {
         <span class="comment">// MR operand encoding.
         //   op1 -&gt; modrm.rm
         //   op2 -&gt; modrm.reg
-        </span><span class="kw">let </span>(mode, rm) = <span class="kw">match </span>op1 {
-            MemOp::Indirect(..) =&gt; {
+        </span><span class="kw">let </span>(mode, rm) = <span class="kw">match </span>op1.mode() {
+            AddrMode::Indirect =&gt; {
                 <span class="macro">assert!</span>(!op1.base().need_sib() &amp;&amp; !op1.base().is_pc_rel());
                 (<span class="number">0b00</span>, op1.base().idx())
             }
-            MemOp::IndirectDisp(..) =&gt; {
+            AddrMode::IndirectDisp =&gt; {
                 <span class="macro">assert!</span>(!op1.base().need_sib());
                 (<span class="number">0b10</span>, op1.base().idx())
             }
-            MemOp::IndirectBaseIndex(..) =&gt; {
+            AddrMode::IndirectBaseIndex =&gt; {
                 <span class="macro">assert!</span>(!op1.base().is_pc_rel());
                 <span class="comment">// Using rsp as index register is interpreted as just base w/o offset.
                 //   https://wiki.osdev.org/X86-64_Instruction_Encoding#32.2F64-bit_addressing_2
@@ -738,22 +734,24 @@
             </span>rm,        <span class="comment">/* rm */
         </span>);
 
-        <span class="kw">let </span>prefix = &lt;<span class="self">Self </span><span class="kw">as </span>EncodeMR&lt;T&gt;&gt;::legacy_prefix();
-        <span class="kw">let </span>rex = &lt;<span class="self">Self </span><span class="kw">as </span>EncodeMR&lt;T&gt;&gt;::rex(<span class="kw-2">&amp;</span>op1, op2);
+        <span class="kw">let </span>prefix = &lt;<span class="self">Self </span><span class="kw">as </span>EncodeMR&lt;M&gt;&gt;::legacy_prefix();
+        <span class="kw">let </span>rex = &lt;<span class="self">Self </span><span class="kw">as </span>EncodeMR&lt;M&gt;&gt;::rex(<span class="kw-2">&amp;</span>op1, op2);
 
         <span class="self">self</span>.emit_optional(<span class="kw-2">&amp;</span>[prefix, rex]);
         <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[opc, modrm]);
-        <span class="kw">match </span>op1 {
-            MemOp::Indirect(..) =&gt; {}
-            MemOp::IndirectDisp(<span class="kw">_</span>, disp) =&gt; <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>disp.to_ne_bytes()),
-            MemOp::IndirectBaseIndex(base, index) =&gt; <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[sib(<span class="number">0</span>, index.idx(), base.idx())]),
+        <span class="kw">match </span>op1.mode() {
+            AddrMode::Indirect =&gt; {}
+            AddrMode::IndirectDisp =&gt; <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>op1.disp().to_ne_bytes()),
+            AddrMode::IndirectBaseIndex =&gt; {
+                <span class="self">self</span>.emit(<span class="kw-2">&amp;</span>[sib(<span class="number">0</span>, op1.index().idx(), op1.base().idx())])
+            }
         }
     }
 
     <span class="doccomment">/// Encode a register-memory instruction.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_rm&lt;T: Reg&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: u8, op1: T, op2: MemOp)
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>encode_rm&lt;T: Reg, M: Mem&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, opc: u8, op1: T, op2: M)
     <span class="kw">where
-        </span><span class="self">Self</span>: EncodeMR&lt;T&gt;,
+        </span><span class="self">Self</span>: EncodeMR&lt;M&gt;,
     {
         <span class="comment">// RM operand encoding.
         //   op1 -&gt; modrm.reg
@@ -829,15 +827,15 @@
 <span class="kw">impl </span>EncodeR&lt;Reg64&gt; <span class="kw">for </span>Asm {}
 
 <span class="doccomment">/// Encode helper for memory-register instructions.
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>EncodeMR&lt;T: Reg&gt; {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>EncodeMR&lt;M: Mem&gt; {
     <span class="kw">fn </span>legacy_prefix() -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
         <span class="prelude-val">None
     </span>}
 
-    <span class="kw">fn </span>rex(op1: <span class="kw-2">&amp;</span>MemOp, op2: T) -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
-        <span class="kw">if </span>op2.need_rex() || op1.base().is_ext() || op1.index().is_ext() {
+    <span class="kw">fn </span>rex&lt;T: Reg&gt;(op1: <span class="kw-2">&amp;</span>M, op2: T) -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
+        <span class="kw">if </span>M::is_64() || op2.is_ext() || op1.base().is_ext() || op1.index().is_ext() {
             <span class="prelude-val">Some</span>(rex(
-                op2.rexw(),
+                M::is_64(),
                 op2.idx(),
                 op1.index().idx(),
                 op1.base().idx(),
@@ -848,72 +846,60 @@
     }
 }
 
-<span class="kw">impl </span>EncodeMR&lt;Reg8&gt; <span class="kw">for </span>Asm {}
-<span class="kw">impl </span>EncodeMR&lt;Reg16&gt; <span class="kw">for </span>Asm {
+<span class="kw">impl </span>EncodeMR&lt;Mem8&gt; <span class="kw">for </span>Asm {}
+<span class="kw">impl </span>EncodeMR&lt;Mem16&gt; <span class="kw">for </span>Asm {
     <span class="kw">fn </span>legacy_prefix() -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
         <span class="prelude-val">Some</span>(<span class="number">0x66</span>)
     }
 }
-<span class="kw">impl </span>EncodeMR&lt;Reg32&gt; <span class="kw">for </span>Asm {}
-<span class="kw">impl </span>EncodeMR&lt;Reg64&gt; <span class="kw">for </span>Asm {}
+<span class="kw">impl </span>EncodeMR&lt;Mem32&gt; <span class="kw">for </span>Asm {}
+<span class="kw">impl </span>EncodeMR&lt;Mem64&gt; <span class="kw">for </span>Asm {}
 
 <span class="doccomment">/// Encode helper for memory-immediate instructions.
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>EncodeMI&lt;T: Imm&gt; {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>EncodeMI&lt;M: Mem&gt; {
     <span class="kw">fn </span>legacy_prefix() -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
         <span class="prelude-val">None
     </span>}
 
-    <span class="kw">fn </span>rex(op1: <span class="kw-2">&amp;</span>MemOp) -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
-        <span class="kw">if </span>op1.base().is_ext() || op1.index().is_ext() {
-            <span class="prelude-val">Some</span>(rex(<span class="bool-val">false</span>, <span class="number">0</span>, op1.index().idx(), op1.base().idx()))
+    <span class="kw">fn </span>rex(op1: <span class="kw-2">&amp;</span>M) -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
+        <span class="kw">if </span>M::is_64() || op1.base().is_ext() || op1.index().is_ext() {
+            <span class="prelude-val">Some</span>(rex(M::is_64(), <span class="number">0</span>, op1.index().idx(), op1.base().idx()))
         } <span class="kw">else </span>{
             <span class="prelude-val">None
         </span>}
     }
 }
 
-<span class="kw">impl </span>EncodeMI&lt;Imm8&gt; <span class="kw">for </span>Asm {}
-<span class="kw">impl </span>EncodeMI&lt;Imm16&gt; <span class="kw">for </span>Asm {
+<span class="kw">impl </span>EncodeMI&lt;Mem8&gt; <span class="kw">for </span>Asm {}
+<span class="kw">impl </span>EncodeMI&lt;Mem16&gt; <span class="kw">for </span>Asm {
     <span class="kw">fn </span>legacy_prefix() -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
         <span class="prelude-val">Some</span>(<span class="number">0x66</span>)
     }
 }
-<span class="kw">impl </span>EncodeMI&lt;Imm32&gt; <span class="kw">for </span>Asm {}
+<span class="kw">impl </span>EncodeMI&lt;Mem32&gt; <span class="kw">for </span>Asm {}
+<span class="kw">impl </span>EncodeMI&lt;Mem64&gt; <span class="kw">for </span>Asm {}
 
 <span class="doccomment">/// Encode helper for memory operand instructions.
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>EncodeM&lt;T: MemOpSized&gt; {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>EncodeM&lt;M: Mem&gt; {
     <span class="kw">fn </span>legacy_prefix() -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
         <span class="prelude-val">None
     </span>}
 
-    <span class="kw">fn </span>rex(op1: <span class="kw-2">&amp;</span>MemOp) -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
-        <span class="kw">if </span>op1.base().is_ext() || op1.index().is_ext() || <span class="self">Self</span>::is_64bit() {
-            <span class="prelude-val">Some</span>(rex(
-                <span class="self">Self</span>::is_64bit(),
-                <span class="number">0</span>,
-                op1.index().idx(),
-                op1.base().idx(),
-            ))
+    <span class="kw">fn </span>rex(op1: <span class="kw-2">&amp;</span>M) -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
+        <span class="kw">if </span>M::is_64() || op1.base().is_ext() || op1.index().is_ext() {
+            <span class="prelude-val">Some</span>(rex(M::is_64(), <span class="number">0</span>, op1.index().idx(), op1.base().idx()))
         } <span class="kw">else </span>{
             <span class="prelude-val">None
         </span>}
     }
-
-    <span class="kw">fn </span>is_64bit() -&gt; bool {
-        <span class="bool-val">false
-    </span>}
 }
 
-<span class="kw">impl </span>EncodeM&lt;MemOp8&gt; <span class="kw">for </span>Asm {}
-<span class="kw">impl </span>EncodeM&lt;MemOp16&gt; <span class="kw">for </span>Asm {
+<span class="kw">impl </span>EncodeM&lt;Mem8&gt; <span class="kw">for </span>Asm {}
+<span class="kw">impl </span>EncodeM&lt;Mem16&gt; <span class="kw">for </span>Asm {
     <span class="kw">fn </span>legacy_prefix() -&gt; <span class="prelude-ty">Option</span>&lt;u8&gt; {
         <span class="prelude-val">Some</span>(<span class="number">0x66</span>)
     }
 }
-<span class="kw">impl </span>EncodeM&lt;MemOp32&gt; <span class="kw">for </span>Asm {}
-<span class="kw">impl </span>EncodeM&lt;MemOp64&gt; <span class="kw">for </span>Asm {
-    <span class="kw">fn </span>is_64bit() -&gt; bool {
-        <span class="bool-val">true
-    </span>}
-}
+<span class="kw">impl </span>EncodeM&lt;Mem32&gt; <span class="kw">for </span>Asm {}
+<span class="kw">impl </span>EncodeM&lt;Mem64&gt; <span class="kw">for </span>Asm {}
 </code></pre></div></section></main></body></html>

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["MemOp","Reg16","Reg32","Reg64","Reg8"],"mod":["insn"],"struct":["Asm","Imm16","Imm32","Imm64","Imm8","Label","MemOp16","MemOp32","MemOp64","MemOp8","Runtime"]};
+window.SIDEBAR_ITEMS = {"enum":["Reg16","Reg32","Reg64","Reg8"],"mod":["insn"],"struct":["Asm","Imm16","Imm32","Imm64","Imm8","Label","Mem16","Mem32","Mem64","Mem8","Runtime"]};

@@ -333,7 +333,11 @@
 <a href="#332" id="332">332</a>
 <a href="#333" id="333">333</a>
 <a href="#334" id="334">334</a>
-<a href="#335" id="335">335</a></pre></div><pre class="rust"><code><span class="doccomment">//! Brainfuck VM.
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a></pre></div><pre class="rust"><code><span class="doccomment">//! Brainfuck VM.
 //!
 //! This example implements a simple
 //! [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) interpreter
@@ -354,7 +358,7 @@
 
 <span class="kw">use </span>juicebox_asm::insn::<span class="kw-2">*</span>;
 <span class="kw">use </span>juicebox_asm::Runtime;
-<span class="kw">use </span>juicebox_asm::{Asm, Imm64, Imm8, Label, MemOp, MemOp8, Reg64, Reg8};
+<span class="kw">use </span>juicebox_asm::{Asm, Imm64, Imm8, Label, Mem8, Reg64, Reg8};
 
 <span class="comment">// -- BRAINFUCK INTERPRETER ----------------------------------------------------
 
@@ -539,12 +543,14 @@
                 // single add instruction during compile time.
 
                 </span><span class="kw">match </span>vm.imem[pc..].iter().take_while(|&amp;&amp;i| i.eq(<span class="kw-2">&amp;</span><span class="string">'+'</span>)).count() {
-                    <span class="number">1 </span>=&gt; asm.inc(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx))),
+                    <span class="number">1 </span>=&gt; {
+                        asm.inc(Mem8::indirect_base_index(dmem_base, dmem_idx));
+                    }
                     cnt <span class="kw">if </span>cnt &lt;= i8::MAX <span class="kw">as </span>usize =&gt; {
                         <span class="comment">// For add m64, imm8, the immediate is sign-extend and
                         // hence treated as signed.
                         </span>asm.add(
-                            MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                            Mem8::indirect_base_index(dmem_base, dmem_idx),
                             Imm8::from(cnt <span class="kw">as </span>u8),
                         );
 
@@ -560,12 +566,14 @@
                 // single sub instruction during compile time.
 
                 </span><span class="kw">match </span>vm.imem[pc..].iter().take_while(|&amp;&amp;i| i.eq(<span class="kw-2">&amp;</span><span class="string">'-'</span>)).count() {
-                    <span class="number">1 </span>=&gt; asm.dec(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx))),
+                    <span class="number">1 </span>=&gt; {
+                        asm.dec(Mem8::indirect_base_index(dmem_base, dmem_idx));
+                    }
                     cnt <span class="kw">if </span>cnt &lt;= i8::MAX <span class="kw">as </span>usize =&gt; {
                         <span class="comment">// For sub m64, imm8, the immediate is sign-extend and
                         // hence treated as signed.
                         </span>asm.sub(
-                            MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                            Mem8::indirect_base_index(dmem_base, dmem_idx),
                             Imm8::from(cnt <span class="kw">as </span>u8),
                         );
 
@@ -582,7 +590,7 @@
                 // then call into putchar. Since we stored all out vm state in
                 // callee saved registers we don't need to save any registers
                 // before the call.
-                </span>asm.mov(Reg8::dil, MemOp::IndirectBaseIndex(dmem_base, dmem_idx));
+                </span>asm.mov(Reg8::dil, Mem8::indirect_base_index(dmem_base, dmem_idx));
                 asm.mov(Reg64::rax, Imm64::from(putchar <span class="kw">as </span>usize));
                 asm.call(Reg64::rax);
             }
@@ -598,7 +606,7 @@
                 <span class="comment">// Goto label_pair.0 if data memory at active cell is 0.
                 //   if vm.dmem[vm.dptr] == 0 goto label_pair.0
                 </span>asm.cmp(
-                    MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                    Mem8::indirect_base_index(dmem_base, dmem_idx),
                     Imm8::from(<span class="number">0u8</span>),
                 );
                 asm.jz(<span class="kw-2">&amp;mut </span>label_pair.<span class="number">0</span>);
@@ -615,7 +623,7 @@
                 <span class="comment">// Goto label_pair.1 if data memory at active cell is not 0.
                 //   if vm.dmem[vm.dptr] != 0 goto label_pair.1
                 </span>asm.cmp(
-                    MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                    Mem8::indirect_base_index(dmem_base, dmem_idx),
                     Imm8::from(<span class="number">0u8</span>),
                 );
                 asm.jnz(<span class="kw-2">&amp;mut </span>label_pair.<span class="number">1</span>);

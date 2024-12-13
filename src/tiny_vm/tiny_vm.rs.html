@@ -743,7 +743,7 @@
 
 </span><span class="kw">use </span>juicebox_asm::insn::<span class="kw-2">*</span>;
 <span class="kw">use </span>juicebox_asm::Runtime;
-<span class="kw">use </span>juicebox_asm::{Asm, Imm16, Imm64, MemOp, Reg16, Reg64};
+<span class="kw">use </span>juicebox_asm::{Asm, Imm16, Imm64, Mem16, Reg16, Reg64};
 
 <span class="doccomment">/// A guest physical address.
 </span><span class="kw">pub struct </span>PhysAddr(<span class="kw">pub </span>u16);
@@ -990,11 +990,11 @@
 
             // Generate memory operand into regs for guest register.
             </span><span class="kw">let </span>reg_op = |r: TinyReg| {
-                MemOp::IndirectDisp(Reg64::rdi, (r.idx() * <span class="number">2</span>).try_into().expect(<span class="string">"only 3 regs"</span>))
+                Mem16::indirect_disp(Reg64::rdi, (r.idx() * <span class="number">2</span>).try_into().expect(<span class="string">"only 3 regs"</span>))
             };
 
             <span class="comment">// Generate memory operand into dmem for guest phys address.
-            </span><span class="kw">let </span>mem_op = |paddr: u16| MemOp::IndirectDisp(Reg64::rsi, paddr.into());
+            </span><span class="kw">let </span>mem_op = |paddr: u16| Mem16::indirect_disp(Reg64::rsi, paddr.into());
 
             <span class="comment">// Compute instructions in translated basic block.
             </span><span class="kw">let </span>bb_icnt = || -&gt; u64 { (pc - <span class="self">self</span>.pc).try_into().unwrap() };
