@@ -6,8 +6,6 @@
 #[cfg(not(target_os = "linux"))]
 compile_error!("This runtime is only supported on linux");
 
-use nix::sys::mman::{mmap, mprotect, munmap, MapFlags, ProtFlags};
-
 mod perf {
     use std::fs;
     use std::io::Write;
@@ -29,7 +27,7 @@ mod perf {
     impl PerfMap {
         /// Create an empty perf map file.
         pub(super) fn new() -> Self {
-            let name = format!("/tmp/perf-{}.map", nix::unistd::getpid());
+            let name = format!("/tmp/perf-{}.map", unsafe { libc::getpid() });
             let file = fs::OpenOptions::new()
                 .truncate(true)
                 .create(true)
@@ -69,22 +67,26 @@ impl Runtime {
     /// Panics if the `mmap` call fails.
     pub fn new() -> Runtime {
         // Allocate a single page.
-        let len = core::num::NonZeroUsize::new(4096).expect("Value is non zero");
+        let len = 4096;
         let buf = unsafe {
-            mmap(
-                None,
+            libc::mmap(
+                std::ptr::null_mut(),
                 len,
-                ProtFlags::PROT_NONE,
-                MapFlags::MAP_PRIVATE | MapFlags::MAP_ANONYMOUS,
+                libc::PROT_NONE,
+                libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
                 0, /* fd */
                 0, /* off */
-            )
-            .expect("Failed to mmap runtime code page") as *mut u8
+            ) as *mut u8
         };
+        assert_ne!(
+            buf.cast(),
+            libc::MAP_FAILED,
+            "Failed to mmap runtime code page"
+        );
 
         Runtime {
             buf,
-            len: len.get(),
+            len,
             idx: 0,
             perf: None,
         }
@@ -186,12 +188,8 @@ impl Runtime {
     fn protect(&mut self) {
         unsafe {
             // Remove write permissions from code page and allow to read-execute from it.
-            mprotect(
-                self.buf.cast(),
-                self.len,
-                ProtFlags::PROT_READ | ProtFlags::PROT_EXEC,
-            )
-            .expect("Failed to RX mprotect runtime code page");
+            let ret = libc::mprotect(self.buf.cast(), self.len, libc::PROT_READ | libc::PROT_EXEC);
+            assert_eq!(ret, 0, "Failed to RX mprotect runtime code page");
         }
     }
 
@@ -203,8 +201,8 @@ impl Runtime {
     fn unprotect(&mut self) {
         unsafe {
             // Add write permissions to code page.
-            mprotect(self.buf.cast(), self.len, ProtFlags::PROT_WRITE)
-                .expect("Failed to W mprotect runtime code page");
+            let ret = libc::mprotect(self.buf.cast(), self.len, libc::PROT_WRITE);
+            assert_eq!(ret, 0, "Failed to W mprotect runtime code page");
         }
     }
 }
@@ -214,7 +212,8 @@ impl Drop for Runtime {
     /// [`Runtime::add_code`].
     fn drop(&mut self) {
         unsafe {
-            munmap(self.buf.cast(), self.len).expect("Failed to munmap runtime");
+            let ret = libc::munmap(self.buf.cast(), self.len);
+            assert_eq!(ret, 0, "Failed to munmap runtime");
         }
     }
 }
