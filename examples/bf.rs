@@ -1,7 +1,6 @@
 //! Brainfuck VM.
 //!
-//! This example implements a simple
-//! [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) interpreter
+//! This example implements a simple [brainfuck][bf] interpreter
 //! [`BrainfuckInterp`] and a jit compiler [`BrainfuckJit`].
 //!
 //! Brainfuck is an esoteric programming languge existing of 8 commands.
@@ -11,8 +10,16 @@
 //! - `-` decrement data at current data pointer.
 //! - `.` output data at current data pointer.
 //! - `,` read input and store at current data pointer.
-//! - `[` jump behind matching ']' if data at data pointer is zero.
-//! - `]` jump behind matching '[' if data at data pointer is non-zero.
+//! - `[` jump behind matching `]` if data at data pointer is zero.
+//! - `]` jump behind matching `[` if data at data pointer is non-zero.
+//!
+//! The following is the `hello-world` program from [wikipedia][hw].
+//! ```
+//! ++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.
+//! ```
+//!
+//! [bf]: https://en.wikipedia.org/wiki/Brainfuck
+//! [hw]: https://en.wikipedia.org/wiki/Brainfuck#Hello_World!
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -35,7 +42,7 @@ impl BrainfuckInterp {
     fn new(prog: &str) -> Result<Self, String> {
         // Do a first pass over the bf program to filter whitespace and detect
         // invalid tokens. Additionally validate all conditional branches, and
-        // compute their branch target.
+        // compute their branch targets.
         let (imem, branches) = {
             // Instruction memory holding the final bf program.
             let mut imem = Vec::new();
@@ -187,8 +194,8 @@ fn run_jit(prog: &str) {
 
     // Move data memory pointer (argument on jit entry) into correct register.
     asm.mov(dmem_base, Reg64::rdi);
-    // Move data memory size into correct register.
-    asm.mov(dmem_size, Reg64::rsi);
+    // Move data memory size (compile time constant) into correct register.
+    asm.mov(dmem_size, Imm64::from(vm.dmem.len()));
     // Clear data memory index.
     asm.xor(dmem_idx, dmem_idx);
 
@@ -316,11 +323,11 @@ fn run_jit(prog: &str) {
         pc += 1;
     }
 
-    let mut ret_epilogue = Label::new();
+    let mut epilogue = Label::new();
 
     // Successful return from bf program.
     asm.xor(Reg64::rax, Reg64::rax);
-    asm.bind(&mut ret_epilogue);
+    asm.bind(&mut epilogue);
     // Restore callee saved registers before returning from jit.
     asm.pop(dmem_idx);
     asm.pop(dmem_size);
@@ -330,12 +337,12 @@ fn run_jit(prog: &str) {
     // Return because of data pointer overflow.
     asm.bind(&mut oob_ov);
     asm.mov(Reg64::rax, Imm64::from(1));
-    asm.jmp(&mut ret_epilogue);
+    asm.jmp(&mut epilogue);
 
     // Return because of data pointer underflow.
     asm.bind(&mut oob_uv);
     asm.mov(Reg64::rax, Imm64::from(2));
-    asm.jmp(&mut ret_epilogue);
+    asm.jmp(&mut epilogue);
 
     if !label_stack.is_empty() {
         panic!("encountered un-balanced brackets, left-over '[' after jitting bf program")
@@ -343,11 +350,11 @@ fn run_jit(prog: &str) {
 
     // Get function pointer to jitted bf program.
     let mut rt = Runtime::new();
-    let bf_entry = unsafe { rt.add_code::<extern "C" fn(*mut u8, usize) -> u64>(asm.into_code()) };
+    let bf_entry = unsafe { rt.add_code::<extern "C" fn(*mut u8) -> u64>(asm.into_code()) };
 
     // Execute jitted bf program.
-    match bf_entry(&mut vm.dmem as *mut u8, vm.dmem.len()) {
-        0 => {}
+    match bf_entry(&mut vm.dmem as *mut u8) {
+        0 => { /* success */ }
         1 => panic!("oob: data pointer overflow"),
         2 => panic!("oob: data pointer underflow"),
         _ => unreachable!(),
