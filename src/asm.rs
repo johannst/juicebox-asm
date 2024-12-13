@@ -1,9 +1,9 @@
 //! The `x64` jit assembler.
 
-use crate::*;
-use imm::Imm;
-use mem::{AddrMode, Mem};
-use reg::Reg;
+use crate::imm::Imm;
+use crate::mem::{AddrMode, Mem, Mem16, Mem32, Mem64, Mem8};
+use crate::reg::{Reg, Reg16, Reg32, Reg64, Reg8};
+use crate::Label;
 
 /// Encode the `REX` byte.
 const fn rex(w: bool, r: u8, x: u8, b: u8) -> u8 {
