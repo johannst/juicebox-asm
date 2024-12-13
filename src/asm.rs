@@ -204,7 +204,7 @@ impl Asm {
     /// Encode a memory-immediate instruction.
     pub(crate) fn encode_mi<M: Mem, T: Imm>(&mut self, opc: u8, opc_ext: u8, op1: M, op2: T)
     where
-        Self: EncodeMI<M>,
+        Self: EncodeM<M>,
     {
         // MI operand encoding.
         //   op1 -> modrm.rm
@@ -234,8 +234,8 @@ impl Asm {
             rm,      /* rm */
         );
 
-        let prefix = <Self as EncodeMI<M>>::legacy_prefix();
-        let rex = <Self as EncodeMI<M>>::rex(&op1);
+        let prefix = <Self as EncodeM<M>>::legacy_prefix();
+        let rex = <Self as EncodeM<M>>::rex(&op1);
 
         self.emit_optional(&[prefix, rex]);
         self.emit(&[opc, modrm]);
@@ -403,31 +403,7 @@ impl EncodeMR<Mem16> for Asm {
 impl EncodeMR<Mem32> for Asm {}
 impl EncodeMR<Mem64> for Asm {}
 
-/// Encode helper for memory-immediate instructions.
-pub(crate) trait EncodeMI<M: Mem> {
-    fn legacy_prefix() -> Option<u8> {
-        None
-    }
-
-    fn rex(op1: &M) -> Option<u8> {
-        if M::is_64() || op1.base().is_ext() || op1.index().is_ext() {
-            Some(rex(M::is_64(), 0, op1.index().idx(), op1.base().idx()))
-        } else {
-            None
-        }
-    }
-}
-
-impl EncodeMI<Mem8> for Asm {}
-impl EncodeMI<Mem16> for Asm {
-    fn legacy_prefix() -> Option<u8> {
-        Some(0x66)
-    }
-}
-impl EncodeMI<Mem32> for Asm {}
-impl EncodeMI<Mem64> for Asm {}
-
-/// Encode helper for memory operand instructions.
+/// Encode helper for memory perand instructions.
 pub(crate) trait EncodeM<M: Mem> {
     fn legacy_prefix() -> Option<u8> {
         None
