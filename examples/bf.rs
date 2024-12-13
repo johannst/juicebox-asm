@@ -175,11 +175,20 @@ fn run_jit(prog: &str) {
     // Use callee saved registers to hold vm state, such that we don't need to
     // save any state before calling out to putchar.
     let dmem_base = Reg64::rbx;
-    let dmem_idx = Reg64::r12;
+    let dmem_size = Reg64::r12;
+    let dmem_idx = Reg64::r13;
 
     let mut asm = Asm::new();
+
+    // Save callee saved registers before we tamper them.
+    asm.push(dmem_base);
+    asm.push(dmem_size);
+    asm.push(dmem_idx);
+
     // Move data memory pointer (argument on jit entry) into correct register.
     asm.mov(dmem_base, Reg64::rdi);
+    // Move data memory size into correct register.
+    asm.mov(dmem_size, Reg64::rsi);
     // Clear data memory index.
     asm.xor(dmem_idx, dmem_idx);
 
@@ -187,16 +196,27 @@ fn run_jit(prog: &str) {
     // given '[]' pair.
     let mut label_stack = Vec::new();
 
+    // Label to jump to when a data pointer overflow is detected.
+    let mut oob_ov = Label::new();
+    // Label to jump to when a data pointer underflow is detected.
+    let mut oob_uv = Label::new();
+
     // Generate code for each instruction in the bf program.
     let mut pc = 0;
     while pc < vm.imem.len() {
         match vm.imem[pc] {
             '>' => {
-                // TODO: generate runtime bounds check.
                 asm.inc(dmem_idx);
+
+                // Check for data pointer overflow and jump to error handler if needed.
+                asm.cmp(dmem_idx, dmem_size);
+                asm.jz(&mut oob_ov);
             }
             '<' => {
-                // TODO: generate runtime bounds check.
+                // Check for data pointer underflow and jump to error handler if needed.
+                asm.test(dmem_idx, dmem_idx);
+                asm.jz(&mut oob_uv);
+
                 asm.dec(dmem_idx);
             }
             '+' => {
@@ -296,29 +316,47 @@ fn run_jit(prog: &str) {
         pc += 1;
     }
 
-    // Return from bf program.
+    let mut ret_epilogue = Label::new();
+
+    // Successful return from bf program.
+    asm.xor(Reg64::rax, Reg64::rax);
+    asm.bind(&mut ret_epilogue);
+    // Restore callee saved registers before returning from jit.
+    asm.pop(dmem_idx);
+    asm.pop(dmem_size);
+    asm.pop(dmem_base);
     asm.ret();
+
+    // Return because of data pointer overflow.
+    asm.bind(&mut oob_ov);
+    asm.mov(Reg64::rax, Imm64::from(1));
+    asm.jmp(&mut ret_epilogue);
+
+    // Return because of data pointer underflow.
+    asm.bind(&mut oob_uv);
+    asm.mov(Reg64::rax, Imm64::from(2));
+    asm.jmp(&mut ret_epilogue);
 
     if !label_stack.is_empty() {
         panic!("encountered un-balanced brackets, left-over '[' after jitting bf program")
     }
 
-    // Execute jitted bf program.
+    // Get function pointer to jitted bf program.
     let mut rt = Runtime::new();
-    let bf_entry = unsafe { rt.add_code::<extern "C" fn(*mut u8)>(asm.into_code()) };
-    bf_entry(&mut vm.dmem as *mut u8);
+    let bf_entry = unsafe { rt.add_code::<extern "C" fn(*mut u8, usize) -> u64>(asm.into_code()) };
+
+    // Execute jitted bf program.
+    match bf_entry(&mut vm.dmem as *mut u8, vm.dmem.len()) {
+        0 => {}
+        1 => panic!("oob: data pointer overflow"),
+        2 => panic!("oob: data pointer underflow"),
+        _ => unreachable!(),
+    }
 }
 
 // -- MAIN ---------------------------------------------------------------------
 
 fn main() {
-    // https://en.wikipedia.org/wiki/Brainfuck#Adding_two_values
-    //let inp = "++>+++++ [<+>-] ++++++++[<++++++>-]<.";
-    //println!("add-print-7 (wikipedia.org) - interp");
-    //run_interp(inp);
-    //println!("add-print-7 (wikipedia.org) - jit");
-    //run_jit(inp);
-
     // https://en.wikipedia.org/wiki/Brainfuck#Hello_World!
     let inp = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.";
     println!("hello-world (wikipedia.org) - interp");
@@ -332,4 +370,35 @@ fn main() {
     run_interp(inp);
     println!("hello-world (programmingwiki.de) - jit");
     run_jit(inp);
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn data_ptr_no_overflow() {
+        let inp = std::iter::repeat('>').take(255).collect::<String>();
+        run_jit(&inp);
+    }
+
+    #[test]
+    #[should_panic]
+    fn data_ptr_overflow() {
+        let inp = std::iter::repeat('>').take(255 + 1).collect::<String>();
+        run_jit(&inp);
+    }
+
+    #[test]
+    fn data_ptr_no_underflow() {
+        let inp = ">><< ><";
+        run_jit(inp);
+    }
+
+    #[test]
+    #[should_panic]
+    fn data_ptr_underflow() {
+        let inp = ">><< >< <";
+        run_jit(&inp);
+    }
 }
