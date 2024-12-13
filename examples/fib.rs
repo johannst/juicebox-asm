@@ -45,7 +45,7 @@ fn main() {
     let sum = Reg64::rax;
 
     let tmp = Reg64::rcx;
-    let prv = Reg64::rbx;
+    let prv = Reg64::rdx;
 
     asm.mov(tmp, Imm64::from(0));
     asm.mov(prv, Imm64::from(1));
