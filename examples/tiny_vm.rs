@@ -38,7 +38,7 @@
 
 use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
-use juicebox_asm::{Asm, Imm16, Imm64, MemOp, Reg16, Reg64};
+use juicebox_asm::{Asm, Imm16, Imm64, Mem16, Reg16, Reg64};
 
 /// A guest physical address.
 pub struct PhysAddr(pub u16);
@@ -285,11 +285,11 @@ impl TinyVm {
 
             // Generate memory operand into regs for guest register.
             let reg_op = |r: TinyReg| {
-                MemOp::IndirectDisp(Reg64::rdi, (r.idx() * 2).try_into().expect("only 3 regs"))
+                Mem16::indirect_disp(Reg64::rdi, (r.idx() * 2).try_into().expect("only 3 regs"))
             };
 
             // Generate memory operand into dmem for guest phys address.
-            let mem_op = |paddr: u16| MemOp::IndirectDisp(Reg64::rsi, paddr.into());
+            let mem_op = |paddr: u16| Mem16::indirect_disp(Reg64::rsi, paddr.into());
 
             // Compute instructions in translated basic block.
             let bb_icnt = || -> u64 { (pc - self.pc).try_into().unwrap() };

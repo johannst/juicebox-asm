@@ -2,6 +2,7 @@
 
 use crate::*;
 use imm::Imm;
+use mem::{AddrMode, Mem};
 use reg::Reg;
 
 /// Encode the `REX` byte.
@@ -155,24 +156,22 @@ impl Asm {
     }
 
     /// Encode a memory operand instruction.
-    pub(crate) fn encode_m<T: MemOpSized>(&mut self, opc: u8, opc_ext: u8, op1: T)
+    pub(crate) fn encode_m<T: Mem>(&mut self, opc: u8, opc_ext: u8, op1: T)
     where
         Self: EncodeM<T>,
     {
-        let op1 = op1.mem_op();
-
         // M operand encoding.
         //   op1 -> modrm.rm
-        let (mode, rm) = match op1 {
-            MemOp::Indirect(..) => {
+        let (mode, rm) = match op1.mode() {
+            AddrMode::Indirect => {
                 assert!(!op1.base().need_sib() && !op1.base().is_pc_rel());
                 (0b00, op1.base().idx())
             }
-            MemOp::IndirectDisp(..) => {
+            AddrMode::IndirectDisp => {
                 assert!(!op1.base().need_sib());
                 (0b10, op1.base().idx())
             }
-            MemOp::IndirectBaseIndex(..) => {
+            AddrMode::IndirectBaseIndex => {
                 assert!(!op1.base().is_pc_rel());
                 // Using rsp as index register is interpreted as just base w/o offset.
                 //   https://wiki.osdev.org/X86-64_Instruction_Encoding#32.2F64-bit_addressing_2
@@ -193,31 +192,33 @@ impl Asm {
 
         self.emit_optional(&[prefix, rex]);
         self.emit(&[opc, modrm]);
-        match op1 {
-            MemOp::Indirect(..) => {}
-            MemOp::IndirectDisp(_, disp) => self.emit(&disp.to_ne_bytes()),
-            MemOp::IndirectBaseIndex(base, index) => self.emit(&[sib(0, index.idx(), base.idx())]),
+        match op1.mode() {
+            AddrMode::Indirect => {}
+            AddrMode::IndirectDisp => self.emit(&op1.disp().to_ne_bytes()),
+            AddrMode::IndirectBaseIndex => {
+                self.emit(&[sib(0, op1.index().idx(), op1.base().idx())])
+            }
         }
     }
 
     /// Encode a memory-immediate instruction.
-    pub(crate) fn encode_mi<T: Imm>(&mut self, opc: u8, opc_ext: u8, op1: MemOp, op2: T)
+    pub(crate) fn encode_mi<M: Mem, T: Imm>(&mut self, opc: u8, opc_ext: u8, op1: M, op2: T)
     where
-        Self: EncodeMI<T>,
+        Self: EncodeMI<M>,
     {
         // MI operand encoding.
         //   op1 -> modrm.rm
         //   op2 -> imm
-        let (mode, rm) = match op1 {
-            MemOp::Indirect(..) => {
+        let (mode, rm) = match op1.mode() {
+            AddrMode::Indirect => {
                 assert!(!op1.base().need_sib() && !op1.base().is_pc_rel());
                 (0b00, op1.base().idx())
             }
-            MemOp::IndirectDisp(..) => {
+            AddrMode::IndirectDisp => {
                 assert!(!op1.base().need_sib());
                 (0b10, op1.base().idx())
             }
-            MemOp::IndirectBaseIndex(..) => {
+            AddrMode::IndirectBaseIndex => {
                 assert!(!op1.base().is_pc_rel());
                 // Using rsp as index register is interpreted as just base w/o offset.
                 //   https://wiki.osdev.org/X86-64_Instruction_Encoding#32.2F64-bit_addressing_2
@@ -233,37 +234,39 @@ impl Asm {
             rm,      /* rm */
         );
 
-        let prefix = <Self as EncodeMI<T>>::legacy_prefix();
-        let rex = <Self as EncodeMI<T>>::rex(&op1);
+        let prefix = <Self as EncodeMI<M>>::legacy_prefix();
+        let rex = <Self as EncodeMI<M>>::rex(&op1);
 
         self.emit_optional(&[prefix, rex]);
         self.emit(&[opc, modrm]);
-        match op1 {
-            MemOp::Indirect(..) => {}
-            MemOp::IndirectDisp(_, disp) => self.emit(&disp.to_ne_bytes()),
-            MemOp::IndirectBaseIndex(base, index) => self.emit(&[sib(0, index.idx(), base.idx())]),
+        match op1.mode() {
+            AddrMode::Indirect => {}
+            AddrMode::IndirectDisp => self.emit(&op1.disp().to_ne_bytes()),
+            AddrMode::IndirectBaseIndex => {
+                self.emit(&[sib(0, op1.index().idx(), op1.base().idx())])
+            }
         }
         self.emit(op2.bytes());
     }
 
     /// Encode a memory-register instruction.
-    pub(crate) fn encode_mr<T: Reg>(&mut self, opc: u8, op1: MemOp, op2: T)
+    pub(crate) fn encode_mr<M: Mem, T: Reg>(&mut self, opc: u8, op1: M, op2: T)
     where
-        Self: EncodeMR<T>,
+        Self: EncodeMR<M>,
     {
         // MR operand encoding.
         //   op1 -> modrm.rm
         //   op2 -> modrm.reg
-        let (mode, rm) = match op1 {
-            MemOp::Indirect(..) => {
+        let (mode, rm) = match op1.mode() {
+            AddrMode::Indirect => {
                 assert!(!op1.base().need_sib() && !op1.base().is_pc_rel());
                 (0b00, op1.base().idx())
             }
-            MemOp::IndirectDisp(..) => {
+            AddrMode::IndirectDisp => {
                 assert!(!op1.base().need_sib());
                 (0b10, op1.base().idx())
             }
-            MemOp::IndirectBaseIndex(..) => {
+            AddrMode::IndirectBaseIndex => {
                 assert!(!op1.base().is_pc_rel());
                 // Using rsp as index register is interpreted as just base w/o offset.
                 //   https://wiki.osdev.org/X86-64_Instruction_Encoding#32.2F64-bit_addressing_2
@@ -279,22 +282,24 @@ impl Asm {
             rm,        /* rm */
         );
 
-        let prefix = <Self as EncodeMR<T>>::legacy_prefix();
-        let rex = <Self as EncodeMR<T>>::rex(&op1, op2);
+        let prefix = <Self as EncodeMR<M>>::legacy_prefix();
+        let rex = <Self as EncodeMR<M>>::rex(&op1, op2);
 
         self.emit_optional(&[prefix, rex]);
         self.emit(&[opc, modrm]);
-        match op1 {
-            MemOp::Indirect(..) => {}
-            MemOp::IndirectDisp(_, disp) => self.emit(&disp.to_ne_bytes()),
-            MemOp::IndirectBaseIndex(base, index) => self.emit(&[sib(0, index.idx(), base.idx())]),
+        match op1.mode() {
+            AddrMode::Indirect => {}
+            AddrMode::IndirectDisp => self.emit(&op1.disp().to_ne_bytes()),
+            AddrMode::IndirectBaseIndex => {
+                self.emit(&[sib(0, op1.index().idx(), op1.base().idx())])
+            }
         }
     }
 
     /// Encode a register-memory instruction.
-    pub(crate) fn encode_rm<T: Reg>(&mut self, opc: u8, op1: T, op2: MemOp)
+    pub(crate) fn encode_rm<T: Reg, M: Mem>(&mut self, opc: u8, op1: T, op2: M)
     where
-        Self: EncodeMR<T>,
+        Self: EncodeMR<M>,
     {
         // RM operand encoding.
         //   op1 -> modrm.reg
@@ -370,15 +375,15 @@ impl EncodeR<Reg16> for Asm {
 impl EncodeR<Reg64> for Asm {}
 
 /// Encode helper for memory-register instructions.
-pub(crate) trait EncodeMR<T: Reg> {
+pub(crate) trait EncodeMR<M: Mem> {
     fn legacy_prefix() -> Option<u8> {
         None
     }
 
-    fn rex(op1: &MemOp, op2: T) -> Option<u8> {
-        if op2.need_rex() || op1.base().is_ext() || op1.index().is_ext() {
+    fn rex<T: Reg>(op1: &M, op2: T) -> Option<u8> {
+        if M::is_64() || op2.is_ext() || op1.base().is_ext() || op1.index().is_ext() {
             Some(rex(
-                op2.rexw(),
+                M::is_64(),
                 op2.idx(),
                 op1.index().idx(),
                 op1.base().idx(),
@@ -389,71 +394,59 @@ pub(crate) trait EncodeMR<T: Reg> {
     }
 }
 
-impl EncodeMR<Reg8> for Asm {}
-impl EncodeMR<Reg16> for Asm {
+impl EncodeMR<Mem8> for Asm {}
+impl EncodeMR<Mem16> for Asm {
     fn legacy_prefix() -> Option<u8> {
         Some(0x66)
     }
 }
-impl EncodeMR<Reg32> for Asm {}
-impl EncodeMR<Reg64> for Asm {}
+impl EncodeMR<Mem32> for Asm {}
+impl EncodeMR<Mem64> for Asm {}
 
 /// Encode helper for memory-immediate instructions.
-pub(crate) trait EncodeMI<T: Imm> {
+pub(crate) trait EncodeMI<M: Mem> {
     fn legacy_prefix() -> Option<u8> {
         None
     }
 
-    fn rex(op1: &MemOp) -> Option<u8> {
-        if op1.base().is_ext() || op1.index().is_ext() {
-            Some(rex(false, 0, op1.index().idx(), op1.base().idx()))
+    fn rex(op1: &M) -> Option<u8> {
+        if M::is_64() || op1.base().is_ext() || op1.index().is_ext() {
+            Some(rex(M::is_64(), 0, op1.index().idx(), op1.base().idx()))
         } else {
             None
         }
     }
 }
 
-impl EncodeMI<Imm8> for Asm {}
-impl EncodeMI<Imm16> for Asm {
+impl EncodeMI<Mem8> for Asm {}
+impl EncodeMI<Mem16> for Asm {
     fn legacy_prefix() -> Option<u8> {
         Some(0x66)
     }
 }
-impl EncodeMI<Imm32> for Asm {}
+impl EncodeMI<Mem32> for Asm {}
+impl EncodeMI<Mem64> for Asm {}
 
 /// Encode helper for memory operand instructions.
-pub(crate) trait EncodeM<T: MemOpSized> {
+pub(crate) trait EncodeM<M: Mem> {
     fn legacy_prefix() -> Option<u8> {
         None
     }
 
-    fn rex(op1: &MemOp) -> Option<u8> {
-        if op1.base().is_ext() || op1.index().is_ext() || Self::is_64bit() {
-            Some(rex(
-                Self::is_64bit(),
-                0,
-                op1.index().idx(),
-                op1.base().idx(),
-            ))
+    fn rex(op1: &M) -> Option<u8> {
+        if M::is_64() || op1.base().is_ext() || op1.index().is_ext() {
+            Some(rex(M::is_64(), 0, op1.index().idx(), op1.base().idx()))
         } else {
             None
         }
     }
-
-    fn is_64bit() -> bool {
-        false
-    }
 }
 
-impl EncodeM<MemOp8> for Asm {}
-impl EncodeM<MemOp16> for Asm {
+impl EncodeM<Mem8> for Asm {}
+impl EncodeM<Mem16> for Asm {
     fn legacy_prefix() -> Option<u8> {
         Some(0x66)
     }
 }
-impl EncodeM<MemOp32> for Asm {}
-impl EncodeM<MemOp64> for Asm {
-    fn is_64bit() -> bool {
-        true
-    }
-}
+impl EncodeM<Mem32> for Asm {}
+impl EncodeM<Mem64> for Asm {}

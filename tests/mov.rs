@@ -1,5 +1,8 @@
 use juicebox_asm::insn::Mov;
-use juicebox_asm::{Asm, Imm16, Imm32, Imm64, Imm8, MemOp, Reg16::*, Reg32::*, Reg64::*, Reg8::*};
+use juicebox_asm::{
+    Asm, Imm16, Imm32, Imm64, Imm8, Mem16, Mem32, Mem64, Mem8, Reg16::*, Reg32::*, Reg64::*,
+    Reg8::*,
+};
 
 macro_rules! mov {
     ($op1:expr, $op2:expr) => {{
@@ -63,54 +66,54 @@ fn mov_ri() {
 #[test]
 fn mov_rm() {
     // 64bit.
-    assert_eq!(mov!(rcx, MemOp::Indirect(rdx)), [0x48, 0x8b, 0x0a]);
-    assert_eq!(mov!(r11, MemOp::Indirect(rsi)), [0x4c, 0x8b, 0x1e]);
-    assert_eq!(mov!(rdi, MemOp::Indirect(r14)), [0x49, 0x8b, 0x3e]);
-    assert_eq!(mov!(r15, MemOp::Indirect(r14)), [0x4d, 0x8b, 0x3e]);
+    assert_eq!(mov!(rcx, Mem64::indirect(rdx)), [0x48, 0x8b, 0x0a]);
+    assert_eq!(mov!(r11, Mem64::indirect(rsi)), [0x4c, 0x8b, 0x1e]);
+    assert_eq!(mov!(rdi, Mem64::indirect(r14)), [0x49, 0x8b, 0x3e]);
+    assert_eq!(mov!(r15, Mem64::indirect(r14)), [0x4d, 0x8b, 0x3e]);
 
     // 32bit.
-    assert_eq!(mov!(ecx,  MemOp::Indirect(rdx)), [0x8b, 0x0a]);
-    assert_eq!(mov!(r11d, MemOp::Indirect(rsi)), [0x44, 0x8b, 0x1e]);
-    assert_eq!(mov!(edi,  MemOp::Indirect(r14)), [0x41, 0x8b, 0x3e]);
-    assert_eq!(mov!(r15d, MemOp::Indirect(r14)), [0x45, 0x8b, 0x3e]);
+    assert_eq!(mov!(ecx,  Mem32::indirect(rdx)), [0x8b, 0x0a]);
+    assert_eq!(mov!(r11d, Mem32::indirect(rsi)), [0x44, 0x8b, 0x1e]);
+    assert_eq!(mov!(edi,  Mem32::indirect(r14)), [0x41, 0x8b, 0x3e]);
+    assert_eq!(mov!(r15d, Mem32::indirect(r14)), [0x45, 0x8b, 0x3e]);
 
     // 16bit.
-    assert_eq!(mov!(cx,   MemOp::Indirect(rdx)), [0x66, 0x8b, 0x0a]);
-    assert_eq!(mov!(r11w, MemOp::Indirect(rsi)), [0x66, 0x44, 0x8b, 0x1e]);
-    assert_eq!(mov!(di,   MemOp::Indirect(r14)), [0x66, 0x41, 0x8b, 0x3e]);
-    assert_eq!(mov!(r15w, MemOp::Indirect(r14)), [0x66, 0x45, 0x8b, 0x3e]);
+    assert_eq!(mov!(cx,   Mem16::indirect(rdx)), [0x66, 0x8b, 0x0a]);
+    assert_eq!(mov!(r11w, Mem16::indirect(rsi)), [0x66, 0x44, 0x8b, 0x1e]);
+    assert_eq!(mov!(di,   Mem16::indirect(r14)), [0x66, 0x41, 0x8b, 0x3e]);
+    assert_eq!(mov!(r15w, Mem16::indirect(r14)), [0x66, 0x45, 0x8b, 0x3e]);
 
     // 8bit.
-    assert_eq!(mov!(cl,   MemOp::Indirect(rdx)), [0x8a, 0x0a]);
-    assert_eq!(mov!(r11l, MemOp::Indirect(rsi)), [0x44, 0x8a, 0x1e]);
-    assert_eq!(mov!(dil,  MemOp::Indirect(r14)), [0x41, 0x8a, 0x3e]);
-    assert_eq!(mov!(r15l, MemOp::Indirect(r14)), [0x45, 0x8a, 0x3e]);
+    assert_eq!(mov!(cl,   Mem8::indirect(rdx)), [0x8a, 0x0a]);
+    assert_eq!(mov!(r11l, Mem8::indirect(rsi)), [0x44, 0x8a, 0x1e]);
+    assert_eq!(mov!(dil,  Mem8::indirect(r14)), [0x41, 0x8a, 0x3e]);
+    assert_eq!(mov!(r15l, Mem8::indirect(r14)), [0x45, 0x8a, 0x3e]);
 }
 
 #[rustfmt::skip]
 #[test]
 fn mov_mr() {
     // 64bit.
-    assert_eq!(mov!(MemOp::Indirect(rdx), rcx), [0x48, 0x89, 0x0a]);
-    assert_eq!(mov!(MemOp::Indirect(rsi), r11), [0x4c, 0x89, 0x1e]);
-    assert_eq!(mov!(MemOp::Indirect(r14), rdi), [0x49, 0x89, 0x3e]);
-    assert_eq!(mov!(MemOp::Indirect(r14), r15), [0x4d, 0x89, 0x3e]);
+    assert_eq!(mov!(Mem64::indirect(rdx), rcx), [0x48, 0x89, 0x0a]);
+    assert_eq!(mov!(Mem64::indirect(rsi), r11), [0x4c, 0x89, 0x1e]);
+    assert_eq!(mov!(Mem64::indirect(r14), rdi), [0x49, 0x89, 0x3e]);
+    assert_eq!(mov!(Mem64::indirect(r14), r15), [0x4d, 0x89, 0x3e]);
 
     // 32bit.
-    assert_eq!(mov!(MemOp::Indirect(rdx), ecx),  [0x89, 0x0a]);
-    assert_eq!(mov!(MemOp::Indirect(rsi), r11d), [0x44, 0x89, 0x1e]);
-    assert_eq!(mov!(MemOp::Indirect(r14), edi),  [0x41, 0x89, 0x3e]);
-    assert_eq!(mov!(MemOp::Indirect(r14), r15d), [0x45, 0x89, 0x3e]);
+    assert_eq!(mov!(Mem32::indirect(rdx), ecx),  [0x89, 0x0a]);
+    assert_eq!(mov!(Mem32::indirect(rsi), r11d), [0x44, 0x89, 0x1e]);
+    assert_eq!(mov!(Mem32::indirect(r14), edi),  [0x41, 0x89, 0x3e]);
+    assert_eq!(mov!(Mem32::indirect(r14), r15d), [0x45, 0x89, 0x3e]);
 
     // 16bit.
-    assert_eq!(mov!(MemOp::Indirect(rdx), cx),   [0x66, 0x89, 0x0a]);
-    assert_eq!(mov!(MemOp::Indirect(rsi), r11w), [0x66, 0x44, 0x89, 0x1e]);
-    assert_eq!(mov!(MemOp::Indirect(r14), di),   [0x66, 0x41, 0x89, 0x3e]);
-    assert_eq!(mov!(MemOp::Indirect(r14), r15w), [0x66, 0x45, 0x89, 0x3e]);
+    assert_eq!(mov!(Mem16::indirect(rdx), cx),   [0x66, 0x89, 0x0a]);
+    assert_eq!(mov!(Mem16::indirect(rsi), r11w), [0x66, 0x44, 0x89, 0x1e]);
+    assert_eq!(mov!(Mem16::indirect(r14), di),   [0x66, 0x41, 0x89, 0x3e]);
+    assert_eq!(mov!(Mem16::indirect(r14), r15w), [0x66, 0x45, 0x89, 0x3e]);
 
     // 8bit.
-    assert_eq!(mov!(MemOp::Indirect(rdx), cl),   [0x88, 0x0a]);
-    assert_eq!(mov!(MemOp::Indirect(rsi), r11l), [0x44, 0x88, 0x1e]);
-    assert_eq!(mov!(MemOp::Indirect(r14), dil),  [0x41, 0x88, 0x3e]);
-    assert_eq!(mov!(MemOp::Indirect(r14), r15l), [0x45, 0x88, 0x3e]);
+    assert_eq!(mov!(Mem8::indirect(rdx), cl),   [0x88, 0x0a]);
+    assert_eq!(mov!(Mem8::indirect(rsi), r11l), [0x44, 0x88, 0x1e]);
+    assert_eq!(mov!(Mem8::indirect(r14), dil),  [0x41, 0x88, 0x3e]);
+    assert_eq!(mov!(Mem8::indirect(r14), r15l), [0x45, 0x88, 0x3e]);
 }

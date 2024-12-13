@@ -1,5 +1,5 @@
 use super::Test;
-use crate::{Asm, Imm16, MemOp, Reg32, Reg64};
+use crate::{Asm, Imm16, Mem16, Reg32, Reg64};
 
 impl Test<Reg64, Reg64> for Asm {
     fn test(&mut self, op1: Reg64, op2: Reg64) {
@@ -13,8 +13,8 @@ impl Test<Reg32, Reg32> for Asm {
     }
 }
 
-impl Test<MemOp, Imm16> for Asm {
-    fn test(&mut self, op1: MemOp, op2: Imm16) {
+impl Test<Mem16, Imm16> for Asm {
+    fn test(&mut self, op1: Mem16, op2: Imm16) {
         self.encode_mi(0xf7, 0, op1, op2);
     }
 }

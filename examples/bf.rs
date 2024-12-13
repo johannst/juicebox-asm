@@ -19,7 +19,7 @@ use std::io::Write;
 
 use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
-use juicebox_asm::{Asm, Imm64, Imm8, Label, MemOp, MemOp8, Reg64, Reg8};
+use juicebox_asm::{Asm, Imm64, Imm8, Label, Mem8, Reg64, Reg8};
 
 // -- BRAINFUCK INTERPRETER ----------------------------------------------------
 
@@ -204,12 +204,14 @@ fn run_jit(prog: &str) {
                 // single add instruction during compile time.
 
                 match vm.imem[pc..].iter().take_while(|&&i| i.eq(&'+')).count() {
-                    1 => asm.inc(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx))),
+                    1 => {
+                        asm.inc(Mem8::indirect_base_index(dmem_base, dmem_idx));
+                    }
                     cnt if cnt <= i8::MAX as usize => {
                         // For add m64, imm8, the immediate is sign-extend and
                         // hence treated as signed.
                         asm.add(
-                            MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                            Mem8::indirect_base_index(dmem_base, dmem_idx),
                             Imm8::from(cnt as u8),
                         );
 
@@ -225,12 +227,14 @@ fn run_jit(prog: &str) {
                 // single sub instruction during compile time.
 
                 match vm.imem[pc..].iter().take_while(|&&i| i.eq(&'-')).count() {
-                    1 => asm.dec(MemOp8::from(MemOp::IndirectBaseIndex(dmem_base, dmem_idx))),
+                    1 => {
+                        asm.dec(Mem8::indirect_base_index(dmem_base, dmem_idx));
+                    }
                     cnt if cnt <= i8::MAX as usize => {
                         // For sub m64, imm8, the immediate is sign-extend and
                         // hence treated as signed.
                         asm.sub(
-                            MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                            Mem8::indirect_base_index(dmem_base, dmem_idx),
                             Imm8::from(cnt as u8),
                         );
 
@@ -247,7 +251,7 @@ fn run_jit(prog: &str) {
                 // then call into putchar. Since we stored all out vm state in
                 // callee saved registers we don't need to save any registers
                 // before the call.
-                asm.mov(Reg8::dil, MemOp::IndirectBaseIndex(dmem_base, dmem_idx));
+                asm.mov(Reg8::dil, Mem8::indirect_base_index(dmem_base, dmem_idx));
                 asm.mov(Reg64::rax, Imm64::from(putchar as usize));
                 asm.call(Reg64::rax);
             }
@@ -263,7 +267,7 @@ fn run_jit(prog: &str) {
                 // Goto label_pair.0 if data memory at active cell is 0.
                 //   if vm.dmem[vm.dptr] == 0 goto label_pair.0
                 asm.cmp(
-                    MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                    Mem8::indirect_base_index(dmem_base, dmem_idx),
                     Imm8::from(0u8),
                 );
                 asm.jz(&mut label_pair.0);
@@ -280,7 +284,7 @@ fn run_jit(prog: &str) {
                 // Goto label_pair.1 if data memory at active cell is not 0.
                 //   if vm.dmem[vm.dptr] != 0 goto label_pair.1
                 asm.cmp(
-                    MemOp::IndirectBaseIndex(dmem_base, dmem_idx),
+                    Mem8::indirect_base_index(dmem_base, dmem_idx),
                     Imm8::from(0u8),
                 );
                 asm.jnz(&mut label_pair.1);

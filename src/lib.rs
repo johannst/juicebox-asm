@@ -76,6 +76,7 @@
 mod asm;
 mod imm;
 mod label;
+mod mem;
 mod reg;
 mod rt;
 
@@ -84,81 +85,6 @@ pub mod insn;
 pub use asm::Asm;
 pub use imm::{Imm16, Imm32, Imm64, Imm8};
 pub use label::Label;
+pub use mem::{Mem16, Mem32, Mem64, Mem8};
 pub use reg::{Reg16, Reg32, Reg64, Reg8};
 pub use rt::Runtime;
-
-/// Type representing a memory operand.
-#[derive(Clone, Copy)]
-pub enum MemOp {
-    /// An indirect memory operand, eg `mov [rax], rcx`.
-    Indirect(Reg64),
-
-    /// An indirect memory operand with additional displacement, eg `mov [rax + 0x10], rcx`.
-    IndirectDisp(Reg64, i32),
-
-    /// An indirect memory operand in the form base + index, eg `mov [rax + rcx], rdx`.
-    IndirectBaseIndex(Reg64, Reg64),
-}
-
-impl MemOp {
-    /// Get the base address register of the memory operand.
-    const fn base(&self) -> Reg64 {
-        match self {
-            MemOp::Indirect(base) => *base,
-            MemOp::IndirectDisp(base, ..) => *base,
-            MemOp::IndirectBaseIndex(base, ..) => *base,
-        }
-    }
-
-    /// Get the index register of the memory operand.
-    fn index(&self) -> Reg64 {
-        // Return zero index register for memory operands w/o index register.
-        let zero_index = Reg64::rax;
-        use reg::Reg;
-        assert_eq!(zero_index.idx(), 0);
-
-        match self {
-            MemOp::Indirect(..) => zero_index,
-            MemOp::IndirectDisp(..) => zero_index,
-            MemOp::IndirectBaseIndex(.., index) => *index,
-        }
-    }
-}
-
-/// Trait to give size hints for memory operands.
-trait MemOpSized {
-    fn mem_op(&self) -> MemOp;
-}
-
-macro_rules! impl_memop_sized {
-    ($(#[$doc:meta] $name:ident)+) => {
-        $(
-        #[$doc]
-        pub struct $name(MemOp);
-
-        impl $name {
-            /// Create a memory with size hint from a raw memory operand.
-            pub fn from(op: MemOp) -> Self {
-                Self(op)
-            }
-        }
-
-        impl MemOpSized for $name {
-            fn mem_op(&self) -> MemOp {
-                self.0
-            }
-        }
-        )+
-    };
-}
-
-impl_memop_sized!(
-    /// A memory operand with a word (8 bit) size hint.
-    MemOp8
-    /// A memory operand with a word (16 bit) size hint.
-    MemOp16
-    /// A memory operand with a dword (32 bit) size hint.
-    MemOp32
-    /// A memory operand with a qword (64 bit) size hint.
-    MemOp64
-);
