@@ -428,10 +428,10 @@
 <a href="#427" id="427">427</a>
 <a href="#428" id="428">428</a></pre></div><pre class="rust"><code><span class="doccomment">//! The `x64` jit assembler.
 
-</span><span class="kw">use crate</span>::<span class="kw-2">*</span>;
-<span class="kw">use </span>imm::Imm;
-<span class="kw">use </span>mem::{AddrMode, Mem};
-<span class="kw">use </span>reg::Reg;
+</span><span class="kw">use </span><span class="kw">crate</span>::imm::Imm;
+<span class="kw">use </span><span class="kw">crate</span>::mem::{AddrMode, Mem, Mem16, Mem32, Mem64, Mem8};
+<span class="kw">use </span><span class="kw">crate</span>::reg::{Reg, Reg16, Reg32, Reg64, Reg8};
+<span class="kw">use </span><span class="kw">crate</span>::Label;
 
 <span class="doccomment">/// Encode the `REX` byte.
 </span><span class="kw">const fn </span>rex(w: bool, r: u8, x: u8, b: u8) -&gt; u8 {
