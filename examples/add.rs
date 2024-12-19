@@ -27,11 +27,12 @@ fn main() {
     asm.call(rax);
     asm.ret();
 
-    let code = asm.into_code();
-    std::fs::write("jit.asm", &code).unwrap();
-
     let mut rt = Runtime::new();
-    let add42 = unsafe { rt.add_code::<extern "C" fn(u32) -> u32>(code) };
+    let add42 = unsafe { rt.add_code::<extern "C" fn(u32) -> u32>(asm.into_code()) };
+
+    // Write out JIT code for visualization.
+    // Disassemble for example with `ndisasm -b 64 jit.asm`.
+    rt.dump();
 
     let res = add42(5);
     assert_eq!(res, 47);
