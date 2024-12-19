@@ -156,22 +156,55 @@ impl Runtime {
         unsafe { Self::as_fn::<F>(fn_start) }
     }
 
-    /// Dump the code added so far to the runtime into a file called `jit.asm` in the processes
-    /// current working directory.
-    ///
-    /// The code can be inspected with a disassembler as for example `ndiasm` from
-    /// [nasm.us](https://nasm.us/index.php).
-    /// ```sh
-    /// ndisasm -b 64 jit.asm
-    /// ```
+    /// Disassemble the code currently added to the runtime, using
+    /// [`ndisasm`](https://nasm.us/index.php) and print it to _stdout_. If
+    /// `ndisasm` is not available on the system this prints a warning and
+    /// becomes a nop.
     ///
     /// # Panics
     ///
-    /// Panics if writing the file failed.
-    pub fn dump(&self) {
+    /// Panics if anything goes wrong with spawning, writing to or reading from
+    /// the `ndisasm` child process.
+    pub fn disasm(&self) {
         assert!(self.idx <= self.len);
         let code = unsafe { core::slice::from_raw_parts(self.buf, self.idx) };
-        std::fs::write("jit.asm", code).expect("Failed to write file");
+
+        // Create ndisasm process, which expects input on stdin.
+        let mut child = match std::process::Command::new("ndisasm")
+            .args(["-b64", "-"])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+        {
+            Ok(child) => child,
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                println!("Runtime::disasm: ndisasm not found, skipping!");
+                return;
+            }
+            Err(err) => {
+                panic!("{:?}", err);
+            }
+        };
+
+        // Write code to stdin of ndisasm.
+        use std::io::Write;
+        child
+            .stdin
+            .take()
+            .expect("failed to take stdin")
+            .write_all(code)
+            .expect("failed to write bytes to stdin");
+
+        // Wait for output from ndisasm and print to stdout.
+        println!(
+            "{}",
+            String::from_utf8_lossy(
+                &child
+                    .wait_with_output()
+                    .expect("failed to get stdout")
+                    .stdout
+            )
+        );
     }
 
     /// Reinterpret the block of code pointed to by `fn_start` as `F`.
