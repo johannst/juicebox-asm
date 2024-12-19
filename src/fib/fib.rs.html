@@ -75,8 +75,7 @@
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
 <a href="#76" id="76">76</a>
-<a href="#77" id="77">77</a>
-<a href="#78" id="78">78</a></pre></div><pre class="rust"><code><span class="doccomment">//! Fibonacci example.
+<a href="#77" id="77">77</a></pre></div><pre class="rust"><code><span class="doccomment">//! Fibonacci example.
 //!
 //! Jit compile a function at runtime (generate native host code) to compute the fibonacci sequence
 //! to demonstrate the [`juicebox_asm`] crate.
@@ -144,9 +143,8 @@
     </span><span class="kw">let </span><span class="kw-2">mut </span>rt = Runtime::new();
     <span class="kw">let </span>fib = <span class="kw">unsafe </span>{ rt.add_code::&lt;<span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>(u64) -&gt; u64&gt;(asm.into_code()) };
 
-    <span class="comment">// Write out JIT code for visualization.
-    // Disassemble for example with `ndisasm -b 64 jit.asm`.
-    </span>rt.dump();
+    <span class="comment">// Disassemble JIT code and write to stdout.
+    </span>rt.disasm();
 
     <span class="kw">for </span>n <span class="kw">in </span><span class="number">0</span>..<span class="number">15 </span>{
         <span class="kw">let </span>fib_jit = fib(n);

@@ -266,7 +266,40 @@
 <a href="#265" id="265">265</a>
 <a href="#266" id="266">266</a>
 <a href="#267" id="267">267</a>
-<a href="#268" id="268">268</a></pre></div><pre class="rust"><code><span class="doccomment">//! Simple `mmap`ed runtime.
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a></pre></div><pre class="rust"><code><span class="doccomment">//! Simple `mmap`ed runtime.
 //!
 //! This runtime supports adding code to executable pages and turn the added code into user
 //! specified function pointer.
@@ -424,22 +457,55 @@
         </span><span class="kw">unsafe </span>{ <span class="self">Self</span>::as_fn::&lt;F&gt;(fn_start) }
     }
 
-    <span class="doccomment">/// Dump the code added so far to the runtime into a file called `jit.asm` in the processes
-    /// current working directory.
-    ///
-    /// The code can be inspected with a disassembler as for example `ndiasm` from
-    /// [nasm.us](https://nasm.us/index.php).
-    /// ```sh
-    /// ndisasm -b 64 jit.asm
-    /// ```
+    <span class="doccomment">/// Disassemble the code currently added to the runtime, using
+    /// [`ndisasm`](https://nasm.us/index.php) and print it to _stdout_. If
+    /// `ndisasm` is not available on the system this prints a warning and
+    /// becomes a nop.
     ///
     /// # Panics
     ///
-    /// Panics if writing the file failed.
-    </span><span class="kw">pub fn </span>dump(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+    /// Panics if anything goes wrong with spawning, writing to or reading from
+    /// the `ndisasm` child process.
+    </span><span class="kw">pub fn </span>disasm(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="macro">assert!</span>(<span class="self">self</span>.idx &lt;= <span class="self">self</span>.len);
         <span class="kw">let </span>code = <span class="kw">unsafe </span>{ core::slice::from_raw_parts(<span class="self">self</span>.buf, <span class="self">self</span>.idx) };
-        std::fs::write(<span class="string">"jit.asm"</span>, code).expect(<span class="string">"Failed to write file"</span>);
+
+        <span class="comment">// Create ndisasm process, which expects input on stdin.
+        </span><span class="kw">let </span><span class="kw-2">mut </span>child = <span class="kw">match </span>std::process::Command::new(<span class="string">"ndisasm"</span>)
+            .args([<span class="string">"-b64"</span>, <span class="string">"-"</span>])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+        {
+            <span class="prelude-val">Ok</span>(child) =&gt; child,
+            <span class="prelude-val">Err</span>(err) <span class="kw">if </span>err.kind() == std::io::ErrorKind::NotFound =&gt; {
+                <span class="macro">println!</span>(<span class="string">"Runtime::disasm: ndisasm not found, skipping!"</span>);
+                <span class="kw">return</span>;
+            }
+            <span class="prelude-val">Err</span>(err) =&gt; {
+                <span class="macro">panic!</span>(<span class="string">"{:?}"</span>, err);
+            }
+        };
+
+        <span class="comment">// Write code to stdin of ndisasm.
+        </span><span class="kw">use </span>std::io::Write;
+        child
+            .stdin
+            .take()
+            .expect(<span class="string">"failed to take stdin"</span>)
+            .write_all(code)
+            .expect(<span class="string">"failed to write bytes to stdin"</span>);
+
+        <span class="comment">// Wait for output from ndisasm and print to stdout.
+        </span><span class="macro">println!</span>(
+            <span class="string">"{}"</span>,
+            String::from_utf8_lossy(
+                <span class="kw-2">&amp;</span>child
+                    .wait_with_output()
+                    .expect(<span class="string">"failed to get stdout"</span>)
+                    .stdout
+            )
+        );
     }
 
     <span class="doccomment">/// Reinterpret the block of code pointed to by `fn_start` as `F`.
