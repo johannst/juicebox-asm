@@ -74,6 +74,7 @@
 //! ```
 
 mod asm;
+mod disasm;
 mod imm;
 mod label;
 mod mem;

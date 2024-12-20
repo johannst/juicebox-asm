@@ -167,44 +167,7 @@ impl Runtime {
     /// the `ndisasm` child process.
     pub fn disasm(&self) {
         assert!(self.idx <= self.len);
-        let code = unsafe { core::slice::from_raw_parts(self.buf, self.idx) };
-
-        // Create ndisasm process, which expects input on stdin.
-        let mut child = match std::process::Command::new("ndisasm")
-            .args(["-b64", "-"])
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .spawn()
-        {
-            Ok(child) => child,
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-                println!("Runtime::disasm: ndisasm not found, skipping!");
-                return;
-            }
-            Err(err) => {
-                panic!("{:?}", err);
-            }
-        };
-
-        // Write code to stdin of ndisasm.
-        use std::io::Write;
-        child
-            .stdin
-            .take()
-            .expect("failed to take stdin")
-            .write_all(code)
-            .expect("failed to write bytes to stdin");
-
-        // Wait for output from ndisasm and print to stdout.
-        println!(
-            "{}",
-            String::from_utf8_lossy(
-                &child
-                    .wait_with_output()
-                    .expect("failed to get stdout")
-                    .stdout
-            )
-        );
+        crate::disasm::disasm(unsafe { core::slice::from_raw_parts(self.buf, self.idx) });
     }
 
     /// Reinterpret the block of code pointed to by `fn_start` as `F`.
