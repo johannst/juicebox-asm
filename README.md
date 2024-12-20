@@ -1,11 +1,13 @@
 # juicebox-asm
 
-[![Rust][wf-badge]][wf-output] [![Rustdoc][doc-badge]][doc-html]
+[![Rust][wf-badge]][wf-output] [![Rustdoc][doc-badge]][doc-html] [![Blog][blog-badge]][blog-html]
 
 [wf-output]: https://github.com/johannst/juicebox-asm/actions/workflows/tests.yml
 [wf-badge]: https://github.com/johannst/juicebox-asm/actions/workflows/tests.yml/badge.svg
 [doc-html]: https://johannst.github.io/juicebox-asm
 [doc-badge]: https://img.shields.io/badge/juicebox__asm-rustdoc-blue.svg?style=flat&logo=rust
+[blog-html]: https://blog.memzero.de/xpost-juicebox-asm
+[blog-badge]: https://img.shields.io/badge/blog_entry-gray?logo=mdbook
 
 ```
                //
