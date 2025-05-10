@@ -1,155 +1,81 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `examples/fib.rs`."><title>fib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="fib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">fib/</div>fib.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers">
-<a href="#1" id="1">1</a>
-<a href="#2" id="2">2</a>
-<a href="#3" id="3">3</a>
-<a href="#4" id="4">4</a>
-<a href="#5" id="5">5</a>
-<a href="#6" id="6">6</a>
-<a href="#7" id="7">7</a>
-<a href="#8" id="8">8</a>
-<a href="#9" id="9">9</a>
-<a href="#10" id="10">10</a>
-<a href="#11" id="11">11</a>
-<a href="#12" id="12">12</a>
-<a href="#13" id="13">13</a>
-<a href="#14" id="14">14</a>
-<a href="#15" id="15">15</a>
-<a href="#16" id="16">16</a>
-<a href="#17" id="17">17</a>
-<a href="#18" id="18">18</a>
-<a href="#19" id="19">19</a>
-<a href="#20" id="20">20</a>
-<a href="#21" id="21">21</a>
-<a href="#22" id="22">22</a>
-<a href="#23" id="23">23</a>
-<a href="#24" id="24">24</a>
-<a href="#25" id="25">25</a>
-<a href="#26" id="26">26</a>
-<a href="#27" id="27">27</a>
-<a href="#28" id="28">28</a>
-<a href="#29" id="29">29</a>
-<a href="#30" id="30">30</a>
-<a href="#31" id="31">31</a>
-<a href="#32" id="32">32</a>
-<a href="#33" id="33">33</a>
-<a href="#34" id="34">34</a>
-<a href="#35" id="35">35</a>
-<a href="#36" id="36">36</a>
-<a href="#37" id="37">37</a>
-<a href="#38" id="38">38</a>
-<a href="#39" id="39">39</a>
-<a href="#40" id="40">40</a>
-<a href="#41" id="41">41</a>
-<a href="#42" id="42">42</a>
-<a href="#43" id="43">43</a>
-<a href="#44" id="44">44</a>
-<a href="#45" id="45">45</a>
-<a href="#46" id="46">46</a>
-<a href="#47" id="47">47</a>
-<a href="#48" id="48">48</a>
-<a href="#49" id="49">49</a>
-<a href="#50" id="50">50</a>
-<a href="#51" id="51">51</a>
-<a href="#52" id="52">52</a>
-<a href="#53" id="53">53</a>
-<a href="#54" id="54">54</a>
-<a href="#55" id="55">55</a>
-<a href="#56" id="56">56</a>
-<a href="#57" id="57">57</a>
-<a href="#58" id="58">58</a>
-<a href="#59" id="59">59</a>
-<a href="#60" id="60">60</a>
-<a href="#61" id="61">61</a>
-<a href="#62" id="62">62</a>
-<a href="#63" id="63">63</a>
-<a href="#64" id="64">64</a>
-<a href="#65" id="65">65</a>
-<a href="#66" id="66">66</a>
-<a href="#67" id="67">67</a>
-<a href="#68" id="68">68</a>
-<a href="#69" id="69">69</a>
-<a href="#70" id="70">70</a>
-<a href="#71" id="71">71</a>
-<a href="#72" id="72">72</a>
-<a href="#73" id="73">73</a>
-<a href="#74" id="74">74</a>
-<a href="#75" id="75">75</a>
-<a href="#76" id="76">76</a>
-<a href="#77" id="77">77</a></pre></div><pre class="rust"><code><span class="doccomment">//! Fibonacci example.
-//!
-//! Jit compile a function at runtime (generate native host code) to compute the fibonacci sequence
-//! to demonstrate the [`juicebox_asm`] crate.
-
-</span><span class="kw">use </span>juicebox_asm::insn::<span class="kw-2">*</span>;
-<span class="kw">use </span>juicebox_asm::Runtime;
-<span class="kw">use </span>juicebox_asm::{Asm, Imm64, Label, Reg64};
-
-<span class="kw">const fn </span>fib_rs(n: u64) -&gt; u64 {
-    <span class="kw">match </span>n {
-        <span class="number">0 </span>=&gt; <span class="number">0</span>,
-        <span class="number">1 </span>=&gt; <span class="number">1</span>,
-        <span class="kw">_ </span>=&gt; fib_rs(n - <span class="number">2</span>) + fib_rs(n - <span class="number">1</span>),
-    }
-}
-
-<span class="kw">fn </span>main() {
-    <span class="kw">let </span><span class="kw-2">mut </span>asm = Asm::new();
-
-    <span class="kw">let </span><span class="kw-2">mut </span>lp = Label::new();
-    <span class="kw">let </span><span class="kw-2">mut </span>end = Label::new();
-
-    <span class="comment">// Reference implementation:
-    //
-    // int fib(int n) {
-    //   int tmp = 0;
-    //   int prv = 1;
-    //   int sum = 0;
-    // loop:
-    //   if (n == 0) goto end;
-    //   tmp = sum;
-    //   sum += prv;
-    //   prv = tmp;
-    //   --n;
-    //   goto loop;
-    // end:
-    //   return sum;
-    // }
-
-    // SystemV abi:
-    //   rdi -&gt; first argument
-    //   rax -&gt; return value
-    </span><span class="kw">let </span>n = Reg64::rdi;
-    <span class="kw">let </span>sum = Reg64::rax;
-
-    <span class="kw">let </span>tmp = Reg64::rcx;
-    <span class="kw">let </span>prv = Reg64::rdx;
-
-    asm.mov(tmp, Imm64::from(<span class="number">0</span>));
-    asm.mov(prv, Imm64::from(<span class="number">1</span>));
-    asm.mov(sum, Imm64::from(<span class="number">0</span>));
-
-    asm.bind(<span class="kw-2">&amp;mut </span>lp);
-    asm.test(n, n);
-    asm.jz(<span class="kw-2">&amp;mut </span>end);
-    asm.mov(tmp, sum);
-    asm.add(sum, prv);
-    asm.mov(prv, tmp);
-    asm.dec(n);
-    asm.jmp(<span class="kw-2">&amp;mut </span>lp);
-    asm.bind(<span class="kw-2">&amp;mut </span>end);
-    asm.ret();
-
-    <span class="comment">// Move code into executable page and get function pointer to it.
-    </span><span class="kw">let </span><span class="kw-2">mut </span>rt = Runtime::new();
-    <span class="kw">let </span>fib = <span class="kw">unsafe </span>{ rt.add_code::&lt;<span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>(u64) -&gt; u64&gt;(asm.into_code()) };
-
-    <span class="comment">// Disassemble JIT code and write to stdout.
-    </span>rt.disasm();
-
-    <span class="kw">for </span>n <span class="kw">in </span><span class="number">0</span>..<span class="number">15 </span>{
-        <span class="kw">let </span>fib_jit = fib(n);
-        <span class="macro">println!</span>(<span class="string">"fib({}) = {}"</span>, n, fib_jit);
-        <span class="macro">assert_eq!</span>(fib_jit, fib_rs(n));
-    }
-}
-</code></pre></div></section></main></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `examples/fib.rs`."><title>fib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="fib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../static.files/storage-3a5871a4.js"></script><script defer src="../../static.files/src-script-b8d3f215.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">fib/</div>fib.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-2"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">// SPDX-License-Identifier: MIT
+<a href=#2 id=2 data-nosnippet>2</a>//
+<a href=#3 id=3 data-nosnippet>3</a>// Copyright (c) 2023, Johannes Stoelp &lt;dev@memzero.de&gt;
+<a href=#4 id=4 data-nosnippet>4</a>
+<a href=#5 id=5 data-nosnippet>5</a></span><span class="doccomment">//! Fibonacci example.
+<a href=#6 id=6 data-nosnippet>6</a>//!
+<a href=#7 id=7 data-nosnippet>7</a>//! Jit compile a function at runtime (generate native host code) to compute the fibonacci sequence
+<a href=#8 id=8 data-nosnippet>8</a>//! to demonstrate the [`juicebox_asm`] crate.
+<a href=#9 id=9 data-nosnippet>9</a>
+<a href=#10 id=10 data-nosnippet>10</a></span><span class="kw">use </span>juicebox_asm::insn::<span class="kw-2">*</span>;
+<a href=#11 id=11 data-nosnippet>11</a><span class="kw">use </span>juicebox_asm::Runtime;
+<a href=#12 id=12 data-nosnippet>12</a><span class="kw">use </span>juicebox_asm::{Asm, Imm64, Label, Reg64};
+<a href=#13 id=13 data-nosnippet>13</a>
+<a href=#14 id=14 data-nosnippet>14</a><span class="kw">const fn </span>fib_rs(n: u64) -&gt; u64 {
+<a href=#15 id=15 data-nosnippet>15</a>    <span class="kw">match </span>n {
+<a href=#16 id=16 data-nosnippet>16</a>        <span class="number">0 </span>=&gt; <span class="number">0</span>,
+<a href=#17 id=17 data-nosnippet>17</a>        <span class="number">1 </span>=&gt; <span class="number">1</span>,
+<a href=#18 id=18 data-nosnippet>18</a>        <span class="kw">_ </span>=&gt; fib_rs(n - <span class="number">2</span>) + fib_rs(n - <span class="number">1</span>),
+<a href=#19 id=19 data-nosnippet>19</a>    }
+<a href=#20 id=20 data-nosnippet>20</a>}
+<a href=#21 id=21 data-nosnippet>21</a>
+<a href=#22 id=22 data-nosnippet>22</a><span class="kw">fn </span>main() {
+<a href=#23 id=23 data-nosnippet>23</a>    <span class="kw">let </span><span class="kw-2">mut </span>asm = Asm::new();
+<a href=#24 id=24 data-nosnippet>24</a>
+<a href=#25 id=25 data-nosnippet>25</a>    <span class="kw">let </span><span class="kw-2">mut </span>lp = Label::new();
+<a href=#26 id=26 data-nosnippet>26</a>    <span class="kw">let </span><span class="kw-2">mut </span>end = Label::new();
+<a href=#27 id=27 data-nosnippet>27</a>
+<a href=#28 id=28 data-nosnippet>28</a>    <span class="comment">// Reference implementation:
+<a href=#29 id=29 data-nosnippet>29</a>    //
+<a href=#30 id=30 data-nosnippet>30</a>    // int fib(int n) {
+<a href=#31 id=31 data-nosnippet>31</a>    //   int tmp = 0;
+<a href=#32 id=32 data-nosnippet>32</a>    //   int prv = 1;
+<a href=#33 id=33 data-nosnippet>33</a>    //   int sum = 0;
+<a href=#34 id=34 data-nosnippet>34</a>    // loop:
+<a href=#35 id=35 data-nosnippet>35</a>    //   if (n == 0) goto end;
+<a href=#36 id=36 data-nosnippet>36</a>    //   tmp = sum;
+<a href=#37 id=37 data-nosnippet>37</a>    //   sum += prv;
+<a href=#38 id=38 data-nosnippet>38</a>    //   prv = tmp;
+<a href=#39 id=39 data-nosnippet>39</a>    //   --n;
+<a href=#40 id=40 data-nosnippet>40</a>    //   goto loop;
+<a href=#41 id=41 data-nosnippet>41</a>    // end:
+<a href=#42 id=42 data-nosnippet>42</a>    //   return sum;
+<a href=#43 id=43 data-nosnippet>43</a>    // }
+<a href=#44 id=44 data-nosnippet>44</a>
+<a href=#45 id=45 data-nosnippet>45</a>    // SystemV abi:
+<a href=#46 id=46 data-nosnippet>46</a>    //   rdi -&gt; first argument
+<a href=#47 id=47 data-nosnippet>47</a>    //   rax -&gt; return value
+<a href=#48 id=48 data-nosnippet>48</a>    </span><span class="kw">let </span>n = Reg64::rdi;
+<a href=#49 id=49 data-nosnippet>49</a>    <span class="kw">let </span>sum = Reg64::rax;
+<a href=#50 id=50 data-nosnippet>50</a>
+<a href=#51 id=51 data-nosnippet>51</a>    <span class="kw">let </span>tmp = Reg64::rcx;
+<a href=#52 id=52 data-nosnippet>52</a>    <span class="kw">let </span>prv = Reg64::rdx;
+<a href=#53 id=53 data-nosnippet>53</a>
+<a href=#54 id=54 data-nosnippet>54</a>    asm.mov(tmp, Imm64::from(<span class="number">0</span>));
+<a href=#55 id=55 data-nosnippet>55</a>    asm.mov(prv, Imm64::from(<span class="number">1</span>));
+<a href=#56 id=56 data-nosnippet>56</a>    asm.mov(sum, Imm64::from(<span class="number">0</span>));
+<a href=#57 id=57 data-nosnippet>57</a>
+<a href=#58 id=58 data-nosnippet>58</a>    asm.bind(<span class="kw-2">&amp;mut </span>lp);
+<a href=#59 id=59 data-nosnippet>59</a>    asm.test(n, n);
+<a href=#60 id=60 data-nosnippet>60</a>    asm.jz(<span class="kw-2">&amp;mut </span>end);
+<a href=#61 id=61 data-nosnippet>61</a>    asm.mov(tmp, sum);
+<a href=#62 id=62 data-nosnippet>62</a>    asm.add(sum, prv);
+<a href=#63 id=63 data-nosnippet>63</a>    asm.mov(prv, tmp);
+<a href=#64 id=64 data-nosnippet>64</a>    asm.dec(n);
+<a href=#65 id=65 data-nosnippet>65</a>    asm.jmp(<span class="kw-2">&amp;mut </span>lp);
+<a href=#66 id=66 data-nosnippet>66</a>    asm.bind(<span class="kw-2">&amp;mut </span>end);
+<a href=#67 id=67 data-nosnippet>67</a>    asm.ret();
+<a href=#68 id=68 data-nosnippet>68</a>
+<a href=#69 id=69 data-nosnippet>69</a>    <span class="comment">// Move code into executable page and get function pointer to it.
+<a href=#70 id=70 data-nosnippet>70</a>    </span><span class="kw">let </span><span class="kw-2">mut </span>rt = Runtime::new();
+<a href=#71 id=71 data-nosnippet>71</a>    <span class="kw">let </span>fib = <span class="kw">unsafe </span>{ rt.add_code::&lt;<span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>(u64) -&gt; u64&gt;(asm.into_code()) };
+<a href=#72 id=72 data-nosnippet>72</a>
+<a href=#73 id=73 data-nosnippet>73</a>    <span class="comment">// Disassemble JIT code and write to stdout.
+<a href=#74 id=74 data-nosnippet>74</a>    </span>rt.disasm();
+<a href=#75 id=75 data-nosnippet>75</a>
+<a href=#76 id=76 data-nosnippet>76</a>    <span class="kw">for </span>n <span class="kw">in </span><span class="number">0</span>..<span class="number">15 </span>{
+<a href=#77 id=77 data-nosnippet>77</a>        <span class="kw">let </span>fib_jit = fib(n);
+<a href=#78 id=78 data-nosnippet>78</a>        <span class="macro">println!</span>(<span class="string">"fib({}) = {}"</span>, n, fib_jit);
+<a href=#79 id=79 data-nosnippet>79</a>        <span class="macro">assert_eq!</span>(fib_jit, fib_rs(n));
+<a href=#80 id=80 data-nosnippet>80</a>    }
+<a href=#81 id=81 data-nosnippet>81</a>}</code></pre></div></section></main></body></html>
