@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 //! TinyVm example.
 //!
 //! This example introduces a simple 16 bit virtual machine the [`TinyVm`]. The VM consists of

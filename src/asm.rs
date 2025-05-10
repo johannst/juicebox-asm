@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 //! The `x64` jit assembler.
 
 use crate::imm::Imm;

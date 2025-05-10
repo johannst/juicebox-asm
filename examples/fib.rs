@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 //! Fibonacci example.
 //!
 //! Jit compile a function at runtime (generate native host code) to compute the fibonacci sequence

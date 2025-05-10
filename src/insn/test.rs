@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 use super::Test;
 use crate::{Asm, Imm16, Mem16, Reg32, Reg64};
 

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 //! A simple `x64` jit assembler with a minimal runtime to execute emitted code for fun.
 //!
 //! The following is an fibonacci example implementation.

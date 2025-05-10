@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2024, Johannes Stoelp <dev@memzero.de>
+
 use super::Xor;
 use crate::{Asm, Reg64};
 

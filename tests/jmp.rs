@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 use juicebox_asm::insn::Jmp;
 use juicebox_asm::{Asm, Label};
 

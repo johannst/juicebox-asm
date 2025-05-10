@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 use super::Mov;
 use crate::{Asm, Imm16, Imm32, Imm64, Imm8, Mem16, Mem32, Mem64, Mem8, Reg16, Reg32, Reg64, Reg8};
 

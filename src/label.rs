@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 //! Definition of the lable type which can be used as jump target and can be bound to a location in
 //! the emitted code.
 

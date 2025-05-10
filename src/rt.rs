@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 //! Simple `mmap`ed runtime.
 //!
 //! This runtime supports adding code to executable pages and turn the added code into user

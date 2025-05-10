@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
+
 //! Definition of registers which are used as input operands for various instructions.
 
 /// Trait to interact with register operands.

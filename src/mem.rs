@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2024, Johannes Stoelp <dev@memzero.de>
+
 //! Definition of different addressing modes and memory operande used as input
 //! and ouput operands in various instructions.
 

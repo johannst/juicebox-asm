@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2024, Johannes Stoelp <dev@memzero.de>
+
 //! Brainfuck VM.
 //!
 //! This example implements a simple [brainfuck][bf] interpreter

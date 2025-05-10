@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+//
+// Copyright (c) 2024, Johannes Stoelp <dev@memzero.de>
+
 use std::io::{ErrorKind, Write};
 use std::process::{Command, Stdio};
 
