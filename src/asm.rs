@@ -92,15 +92,20 @@ impl Asm {
     /// If the [Label] is bound, patch any pending relocation.
     fn resolve(&mut self, label: &mut Label) {
         if let Some(loc) = label.location() {
-            // For now we only support disp32 as label location.
-            let loc = i32::try_from(loc).expect("Label location did not fit into i32.");
-
             // Resolve any pending relocations for the label.
             for off in label.offsets_mut().drain() {
                 // Displacement is relative to the next instruction following the jump.
-                // We record the offset to patch at the first byte of the disp32 therefore we need
-                // to account for that in the disp computation.
-                let disp32 = loc - i32::try_from(off).expect("Label offset did not fit into i32") - 4 /* account for the disp32 */;
+                let disp = {
+                    let loc = isize::try_from(loc).expect("loc does not fit into isize");
+                    let off = isize::try_from(off).expect("off does not fit into isize");
+
+                    // We record the offset to patch at the first byte of the disp32
+                    // therefore we need to account for that in the disp computation.
+                    loc - (off + 4/* account for the disp32 */)
+                };
+
+                // For now we only support disp32 as label location.
+                let disp32 = i32::try_from(disp).expect("Label offset did not fit into i32");
 
                 // Patch the relocation with the disp32.
                 self.emit_at(off, &disp32.to_ne_bytes());
