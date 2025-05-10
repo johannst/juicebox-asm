@@ -1,10 +1,9 @@
 use std::io::{ErrorKind, Write};
 use std::process::{Command, Stdio};
 
-/// Disassemble the code currently added to the runtime, using
-/// [`ndisasm`](https://nasm.us/index.php) and print it to _stdout_. If
-/// `ndisasm` is not available on the system this prints a warning and
-/// becomes a nop.
+/// Disassemble the code using [`ndisasm`](https://nasm.us/index.php)
+/// and print it to _stdout_. If `ndisasm` is not available on the
+/// system this prints a warning and becomes a nop.
 ///
 /// # Panics
 ///

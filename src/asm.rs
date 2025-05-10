@@ -42,7 +42,7 @@ impl Asm {
         self.buf
     }
 
-    /// Disassemble the code currently added to the runtime, using
+    /// Disassemble the code currently added to the assembler, using
     /// [`ndisasm`](https://nasm.us/index.php) and print it to _stdout_. If
     /// `ndisasm` is not available on the system this prints a warning and
     /// becomes a nop.
