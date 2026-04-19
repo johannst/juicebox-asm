@@ -279,7 +279,7 @@ fn run_jit(prog: &str) {
                 // callee saved registers we don't need to save any registers
                 // before the call.
                 asm.mov(Reg8::dil, Mem8::indirect_base_index(dmem_base, dmem_idx));
-                asm.mov(Reg64::rax, Imm64::from(putchar as usize));
+                asm.mov(Reg64::rax, Imm64::from(putchar as *const () as usize));
                 asm.call(Reg64::rax);
             }
             ',' => {

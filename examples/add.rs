@@ -27,7 +27,7 @@ fn main() {
     //   rax -> return value
 
     asm.mov(rsi, Imm64::from(42));
-    asm.mov(rax, Imm64::from(add as usize));
+    asm.mov(rax, Imm64::from(add as *const () as usize));
     asm.call(rax);
     asm.ret();
 
