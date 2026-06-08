@@ -6,6 +6,9 @@ edition = "2021"
 [dependencies]
 libc = "0.2"
 
+[dev-dependencies]
+elfload = { git = "https://github.com/johannst/elfload" }
+
 # When profiling one wants debug symbols for release builds.
 #[profile.release]
 #debug = 1
