@@ -37,7 +37,7 @@ mod perf {
                 .create(true)
                 .write(true)
                 .open(&name)
-                .unwrap_or_else(|_| panic!("Failed to open perf map file {}", &name));
+                .unwrap_or_else(|_| panic!("Failed to open perf map file {}", name));
 
             PerfMap { file }
         }
