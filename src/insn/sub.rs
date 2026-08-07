@@ -3,11 +3,17 @@
 // Copyright (c) 2024, Johannes Stoelp <dev@memzero.de>
 
 use super::Sub;
-use crate::{Asm, Imm8, Mem8, Reg64};
+use crate::{Asm, Imm8, Mem8, Reg32, Reg64};
+
+impl Sub<Reg32, Reg32> for Asm {
+    fn sub(&mut self, op1: Reg32, op2: Reg32) {
+        self.encode_rr_mr(&[0x29], op1, op2);
+    }
+}
 
 impl Sub<Reg64, Reg64> for Asm {
     fn sub(&mut self, op1: Reg64, op2: Reg64) {
-        self.encode_rr(&[0x29], op1, op2);
+        self.encode_rr_mr(&[0x29], op1, op2);
     }
 }
 

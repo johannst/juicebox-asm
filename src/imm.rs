@@ -23,6 +23,12 @@ macro_rules! impl_imm {
             }
         }
 
+        impl $name {
+            pub fn splat_u8(val: u8) -> $name {
+                $name([val; $size])
+            }
+        }
+
         $(
         impl From<$from> for $name {
             fn from(imm: $from) -> Self {

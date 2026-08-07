@@ -6,6 +6,8 @@
 
 /// Trait to interact with register operands.
 pub(crate) trait Reg {
+    fn is_64() -> bool;
+
     /// Get the raw x64 register code.
     fn idx(&self) -> u8;
 
@@ -42,13 +44,25 @@ pub(crate) trait Reg {
 }
 
 macro_rules! enum_reg {
-    (#[$doc:meta]  $name:ident, { $($reg:ident),+ $(,)? }) => {
+    (#[$doc:meta]  $name:ident, $narrow:ident, $wider:ident, { $($reg:ident),+ $(,)? }) => {
         #[$doc]
         #[allow(non_camel_case_types)]
         #[derive(Copy, Clone)]
         #[repr(u8)]
         pub enum $name {
             $( $reg, )+
+        }
+
+        impl $name {
+            pub fn narrow(&self) -> $narrow {
+                let idx = self.idx();
+                unsafe { std::ptr::read(&idx as *const u8 as *const $narrow) }
+            }
+
+            pub fn wider(&self) -> $wider {
+                let idx = self.idx();
+                unsafe { std::ptr::read(&idx as *const u8 as *const $wider) }
+            }
         }
 
         #[cfg(test)]
@@ -62,8 +76,8 @@ macro_rules! enum_reg {
 }
 
 macro_rules! impl_reg {
-    (#[$doc:meta] $name:ident, $rexw:expr, { $($reg:ident),+ $(,)? }) => {
-        enum_reg!(#[$doc] $name, { $( $reg, )+ });
+    (#[$doc:meta] $name:ident, $narrow:ident, $wider:ident, $rexw:expr, { $($reg:ident),+ $(,)? }) => {
+        enum_reg!(#[$doc] $name, $narrow, $wider, { $( $reg, )+ });
 
         impl Reg for $name {
             /// Get the raw x64 register code.
@@ -75,23 +89,28 @@ macro_rules! impl_reg {
             fn rexw(&self) -> bool {
                 $rexw
             }
+
+            fn is_64() -> bool {
+                use std::any::TypeId;
+                TypeId::of::<Self>() == TypeId::of::<Reg64>()
+            }
         }
     }
 }
 
 impl_reg!(
     /// Definition of 64 bit registers.
-    Reg64, true,  { rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8,  r9,  r10,  r11,  r12,  r13,  r14,  r15  });
+    Reg64, Reg32, Reg64, true,  { rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8,  r9,  r10,  r11,  r12,  r13,  r14,  r15  });
 impl_reg!(
     /// Definition of 32 bit registers.
-    Reg32, false, { eax, ecx, edx, ebx, esp, ebp, esi, edi, r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d });
+    Reg32, Reg16, Reg64, false, { eax, ecx, edx, ebx, esp, ebp, esi, edi, r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d });
 impl_reg!(
     /// Definition of 16 bit registers.
-    Reg16, false, { ax,  cx,  dx,  bx,  sp,  bp,  si,  di,  r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w });
+    Reg16, Reg8, Reg32, false, { ax,  cx,  dx,  bx,  sp,  bp,  si,  di,  r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w });
 enum_reg!(
     /// Definition of 8 bit registers.
-    Reg8,         { al,  cl,  dl,  bl,  spl, bpl, sil, dil, r8l, r9l, r10l, r11l, r12l, r13l, r14l, r15l,
-                          ah,  ch,  dh,  bh });
+    Reg8,  Reg8, Reg16,        { al,  cl,  dl,  bl,  spl, bpl, sil, dil, r8l, r9l, r10l, r11l, r12l, r13l, r14l, r15l,
+                                 ah,  ch,  dh,  bh });
 
 impl Reg for Reg8 {
     /// Get the raw x64 register code.
@@ -121,6 +140,11 @@ impl Reg for Reg8 {
     /// Manual - Volume 2*.
     fn need_rex(&self) -> bool {
         self.idx() > 7 || matches!(self, Reg8::spl | Reg8::bpl | Reg8::sil | Reg8::dil)
+    }
+
+    fn is_64() -> bool {
+        use std::any::TypeId;
+        TypeId::of::<Self>() == TypeId::of::<Reg64>()
     }
 }
 

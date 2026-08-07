@@ -3,17 +3,29 @@
 // Copyright (c) 2023, Johannes Stoelp <dev@memzero.de>
 
 use super::Test;
-use crate::{Asm, Imm16, Mem16, Reg32, Reg64};
+use crate::{Asm, Imm16, Mem16, Reg16, Reg32, Reg64, Reg8};
 
-impl Test<Reg64, Reg64> for Asm {
-    fn test(&mut self, op1: Reg64, op2: Reg64) {
-        self.encode_rr(&[0x85], op1, op2);
+impl Test<Reg8, Reg8> for Asm {
+    fn test(&mut self, op1: Reg8, op2: Reg8) {
+        self.encode_rr_mr(&[0x84], op1, op2);
+    }
+}
+
+impl Test<Reg16, Reg16> for Asm {
+    fn test(&mut self, op1: Reg16, op2: Reg16) {
+        self.encode_rr_mr(&[0x85], op1, op2);
     }
 }
 
 impl Test<Reg32, Reg32> for Asm {
     fn test(&mut self, op1: Reg32, op2: Reg32) {
-        self.encode_rr(&[0x85], op1, op2);
+        self.encode_rr_mr(&[0x85], op1, op2);
+    }
+}
+
+impl Test<Reg64, Reg64> for Asm {
+    fn test(&mut self, op1: Reg64, op2: Reg64) {
+        self.encode_rr_mr(&[0x85], op1, op2);
     }
 }
 

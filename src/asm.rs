@@ -10,7 +10,7 @@ use crate::reg::{Reg, Reg16, Reg32, Reg64, Reg8};
 use crate::Label;
 
 /// Encode the `REX` byte.
-const fn rex(w: bool, r: u8, x: u8, b: u8) -> u8 {
+pub(crate) const fn rex(w: bool, r: u8, x: u8, b: u8) -> u8 {
     let w = if w { 1 } else { 0 };
     let r = (r >> 3) & 1;
     let x = (x >> 3) & 1;
@@ -19,7 +19,7 @@ const fn rex(w: bool, r: u8, x: u8, b: u8) -> u8 {
 }
 
 /// Encode the `ModR/M` byte.
-const fn modrm(mod_: u8, reg: u8, rm: u8) -> u8 {
+pub(crate) const fn modrm(mod_: u8, reg: u8, rm: u8) -> u8 {
     ((mod_ & 0b11) << 6) | ((reg & 0b111) << 3) | (rm & 0b111)
 }
 
@@ -65,7 +65,7 @@ impl Asm {
     }
 
     /// Emit a slice of optional bytes.
-    fn emit_optional(&mut self, bytes: &[Option<u8>]) {
+    pub(crate) fn emit_optional(&mut self, bytes: &[Option<u8>]) {
         for byte in bytes.iter().filter_map(|&b| b) {
             self.buf.push(byte);
         }
@@ -119,28 +119,6 @@ impl Asm {
 
     // -- Encode utilities.
 
-    /// Encode an register-register instruction.
-    pub(crate) fn encode_rr<T: Reg>(&mut self, opc: &[u8], op1: T, op2: T)
-    where
-        Self: EncodeRR<T>,
-    {
-        // MR operand encoding.
-        //   op1 -> modrm.rm
-        //   op2 -> modrm.reg
-        let modrm = modrm(
-            0b11,      /* mod */
-            op2.idx(), /* reg */
-            op1.idx(), /* rm */
-        );
-
-        let prefix = <Self as EncodeRR<T>>::legacy_prefix();
-        let rex = <Self as EncodeRR<T>>::rex(op1, op2);
-
-        self.emit_optional(&[prefix, rex]);
-        self.emit(opc);
-        self.emit(&[modrm]);
-    }
-
     /// Encode an offset-immediate instruction.
     /// Register idx is encoded in the opcode.
     pub(crate) fn encode_oi<T: Reg, U: Imm>(&mut self, opc: u8, op1: T, op2: U)
@@ -157,7 +135,7 @@ impl Asm {
     }
 
     /// Encode a register instruction.
-    pub(crate) fn encode_r<T: Reg>(&mut self, opc: u8, opc_ext: u8, op1: T)
+    pub(crate) fn encode_r<T: Reg>(&mut self, opc: &[u8], opc_ext: u8, op1: T)
     where
         Self: EncodeR<T>,
     {
@@ -174,7 +152,62 @@ impl Asm {
         let rex = <Self as EncodeR<T>>::rex(op1);
 
         self.emit_optional(&[prefix, rex]);
+        self.emit(opc);
+        self.emit(&[modrm]);
+    }
+
+    /// Encode a register-register instruction with MR operand encoding,
+    /// for example "<ins> r/m64, r64".
+    pub(crate) fn encode_rr_mr<T: Reg, U: Reg>(&mut self, opc: &[u8], op1: T, op2: U)
+    where
+        Self: EncodeRR<T, U>,
+    {
+        // RR as MR operand encoding, eg for "<ins> r/m64, r64".
+        //   op1 -> modrm.rm
+        //   op2 -> modrm.reg
+        //
+        // NOTE: There are also RR with RM encoding "<ins> r64 r/m64", caution!
+        let modrm = modrm(
+            0b11,      /* mod */
+            op2.idx(), /* reg */
+            op1.idx(), /* rm */
+        );
+
+        let prefix = <Self as EncodeRR<T, U>>::legacy_prefix();
+        let rex = <Self as EncodeRR<T, U>>::rex(op1, op2);
+
+        self.emit_optional(&[prefix, rex]);
+        self.emit(opc);
+        self.emit(&[modrm]);
+    }
+
+    /// Encode a register-register instruction with RM operand encoding,
+    /// for example "<ins> r64, r/m64".
+    pub(crate) fn encode_rr_rm<T: Reg, U: Reg>(&mut self, opc: &[u8], op1: T, op2: U)
+    where
+        Self: EncodeRR<U, T>,
+    {
+        // Flip operands to read as MR.
+        self.encode_rr_mr::<U, T>(opc, op2, op1);
+    }
+
+    /// Encode a register-immediate instruction.
+    pub(crate) fn encode_ri<T: Reg, U: Imm>(&mut self, opc: u8, opc_ext: u8, op1: T, op2: U)
+    where
+        Self: EncodeR<T>,
+    {
+        let modrm = modrm(
+            0b11,      /* mode */
+            opc_ext,   /* reg */
+            op1.idx(), /* rm */
+        );
+
+        let prefix = <Self as EncodeR<T>>::legacy_prefix();
+        let rex = <Self as EncodeR<T>>::rex(op1);
+
+        self.emit_optional(&[prefix, rex]);
         self.emit(&[opc, modrm]);
+        self.emit(op2.bytes());
     }
 
     /// Encode a memory operand instruction.
@@ -272,7 +305,7 @@ impl Asm {
     }
 
     /// Encode a memory-register instruction.
-    pub(crate) fn encode_mr<M: Mem, T: Reg>(&mut self, opc: u8, op1: M, op2: T)
+    pub(crate) fn encode_mr<M: Mem, T: Reg>(&mut self, opc: &[u8], op1: M, op2: T)
     where
         Self: EncodeMR<M>,
     {
@@ -308,7 +341,8 @@ impl Asm {
         let rex = <Self as EncodeMR<M>>::rex(&op1, op2);
 
         self.emit_optional(&[prefix, rex]);
-        self.emit(&[opc, modrm]);
+        self.emit(opc);
+        self.emit(&[modrm]);
         match op1.mode() {
             AddrMode::Indirect => {}
             AddrMode::IndirectDisp => self.emit(&op1.disp().to_ne_bytes()),
@@ -319,7 +353,7 @@ impl Asm {
     }
 
     /// Encode a register-memory instruction.
-    pub(crate) fn encode_rm<T: Reg, M: Mem>(&mut self, opc: u8, op1: T, op2: M)
+    pub(crate) fn encode_rm<T: Reg, M: Mem>(&mut self, opc: &[u8], op1: T, op2: M)
     where
         Self: EncodeMR<M>,
     {
@@ -349,12 +383,12 @@ impl Asm {
 // -- Encoder helper.
 
 /// Encode helper for register-register instructions.
-pub(crate) trait EncodeRR<T: Reg> {
+pub(crate) trait EncodeRR<T: Reg, U: Reg> {
     fn legacy_prefix() -> Option<u8> {
         None
     }
 
-    fn rex(op1: T, op2: T) -> Option<u8> {
+    fn rex(op1: T, op2: U) -> Option<u8> {
         if op1.need_rex() || op2.need_rex() {
             Some(rex(op1.rexw(), op2.idx(), 0, op1.idx()))
         } else {
@@ -363,14 +397,17 @@ pub(crate) trait EncodeRR<T: Reg> {
     }
 }
 
-impl EncodeRR<Reg8> for Asm {}
-impl EncodeRR<Reg32> for Asm {}
-impl EncodeRR<Reg16> for Asm {
+impl EncodeRR<Reg8, Reg8> for Asm {}
+impl EncodeRR<Reg16, Reg16> for Asm {
     fn legacy_prefix() -> Option<u8> {
         Some(0x66)
     }
 }
-impl EncodeRR<Reg64> for Asm {}
+impl EncodeRR<Reg32, Reg32> for Asm {}
+impl EncodeRR<Reg64, Reg64> for Asm {}
+
+impl EncodeRR<Reg8, Reg32> for Asm {}
+impl EncodeRR<Reg32, Reg8> for Asm {}
 
 /// Encode helper for register instructions.
 pub(crate) trait EncodeR<T: Reg> {
@@ -388,12 +425,12 @@ pub(crate) trait EncodeR<T: Reg> {
 }
 
 impl EncodeR<Reg8> for Asm {}
-impl EncodeR<Reg32> for Asm {}
 impl EncodeR<Reg16> for Asm {
     fn legacy_prefix() -> Option<u8> {
         Some(0x66)
     }
 }
+impl EncodeR<Reg32> for Asm {}
 impl EncodeR<Reg64> for Asm {}
 
 /// Encode helper for memory-register instructions.
@@ -403,9 +440,9 @@ pub(crate) trait EncodeMR<M: Mem> {
     }
 
     fn rex<T: Reg>(op1: &M, op2: T) -> Option<u8> {
-        if M::is_64() || op2.is_ext() || op1.base().is_ext() || op1.index().is_ext() {
+        if M::is_64() || T::is_64() || op2.is_ext() || op1.base().is_ext() || op1.index().is_ext() {
             Some(rex(
-                M::is_64(),
+                M::is_64() || T::is_64(),
                 op2.idx(),
                 op1.index().idx(),
                 op1.base().idx(),
@@ -425,7 +462,7 @@ impl EncodeMR<Mem16> for Asm {
 impl EncodeMR<Mem32> for Asm {}
 impl EncodeMR<Mem64> for Asm {}
 
-/// Encode helper for memory perand instructions.
+/// Encode helper for memory operand instructions.
 pub(crate) trait EncodeM<M: Mem> {
     fn legacy_prefix() -> Option<u8> {
         None
