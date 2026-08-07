@@ -16,6 +16,8 @@
       buildInputs = [
         pkgs.zig
         pkgs.zls
+        # For llvm-objdump.
+        pkgs.llvm
       ];
       shellHook = ''
         # https://github.com/NixOS/nixpkgs/issues/270415

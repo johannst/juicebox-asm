@@ -15,8 +15,11 @@ all: build build-examples check-fmt check-clippy check-tests check-examples chec
 build:
 	cargo build $(CARGO_FLAGS)
 
-build-examples:
+build-examples: build-guests
 	cargo build $(CARGO_FLAGS) --examples
+
+build-guests:
+	make -C ../examples/rv32i-guest
 
 check-fmt:
 	cargo fmt --check
@@ -35,9 +38,15 @@ check-readme:
 	cargo run $(CARGO_FLAGS) --example readme
 	rm -f ../examples/readme.rs
 
-run-examples:
+run-examples: build-guests
 	cargo run $(CARGO_FLAGS) --example fib
 	cargo run $(CARGO_FLAGS) --example add
 	cargo run $(CARGO_FLAGS) --example tiny_vm
 	cargo run $(CARGO_FLAGS) --example tiny_vm jit
 	cargo run $(CARGO_FLAGS) --example bf
+	cargo run $(CARGO_FLAGS) --example rv32i guest1 | tee ../target/rv32i.txt
+	grep "^write(.*) -> moose-elk$$" ../target/rv32i.txt
+	grep "^exit(42)$$" ../target/rv32i.txt
+	cargo run $(CARGO_FLAGS) --example rv32i guest2 | tee ../target/rv32i.txt
+	grep "^write(.*) -> hello C$$" ../target/rv32i.txt
+	grep "^exit_group(0)$$" ../target/rv32i.txt

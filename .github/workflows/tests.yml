@@ -2,12 +2,11 @@ name: tests
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
+  NIX_DEV: nix develop ./examples/rv32i-guest --command
 
 jobs:
   build:
@@ -15,11 +14,15 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - uses: cachix/install-nix-action@v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+
     - name: Build
       run: make -C ci build
 
     - name: Build examples
-      run: make -C ci build-examples
+      run: $NIX_DEV make -C ci build-examples
 
     - name: Check fmt
       run: make -C ci check-fmt
@@ -34,4 +37,4 @@ jobs:
       run: make -C ci check-examples
 
     - name: Run examples
-      run: make -C ci run-examples
+      run: $NIX_DEV make -C ci run-examples
