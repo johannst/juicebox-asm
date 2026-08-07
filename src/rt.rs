@@ -64,14 +64,23 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    /// Create a new [Runtime].
+    /// Create a new [Runtime] with a code buffer of 1 page.
     ///
     /// # Panics
     ///
     /// Panics if the `mmap` call fails.
     pub fn new() -> Runtime {
+        Runtime::with_capacity(1)
+    }
+
+    /// Create a new [Runtime] with a code buffer of NPAGES pages.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the length calculation overflows or the `mmap` call fails.
+    pub fn with_capacity(npages: usize) -> Runtime {
         // Allocate a single page.
-        let len = 4096;
+        let len = npages.checked_mul(4096).unwrap();
         let buf = unsafe {
             libc::mmap(
                 std::ptr::null_mut(),
@@ -246,6 +255,40 @@ mod test {
     fn test_code_max_size_plus_1_2() {
         let mut rt = Runtime::new();
         let code = [0u8; 4096];
+        unsafe {
+            rt.add_code::<extern "C" fn()>(code);
+        }
+
+        let code = [0u8; 1];
+        unsafe {
+            rt.add_code::<extern "C" fn()>(code);
+        }
+    }
+
+    #[test]
+    fn test_capacity_code_max_size() {
+        let mut rt = Runtime::with_capacity(2);
+        let code = [0u8; 2 * 4096];
+        unsafe {
+            rt.add_code::<extern "C" fn()>(code);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_capacity_code_max_size_plus_1() {
+        let mut rt = Runtime::with_capacity(2);
+        let code = [0u8; 2 * 4096 + 1];
+        unsafe {
+            rt.add_code::<extern "C" fn()>(code);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_capacity_code_max_size_plus_1_2() {
+        let mut rt = Runtime::with_capacity(2);
+        let code = [0u8; 2 * 4096];
         unsafe {
             rt.add_code::<extern "C" fn()>(code);
         }
