@@ -1,1 +1,0 @@
-searchState.loadedDescShard("bf", 0, "Brainfuck VM.")
