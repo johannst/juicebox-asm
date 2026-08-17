@@ -45,8 +45,9 @@ run-examples: build-guests
 	cargo run $(CARGO_FLAGS) --example tiny_vm jit
 	cargo run $(CARGO_FLAGS) --example bf
 	cargo run $(CARGO_FLAGS) --example rv32i guest1 | tee ../target/rv32i.txt
-	grep "^write(.*) -> moose-elk$$" ../target/rv32i.txt
-	grep "^exit(42)$$" ../target/rv32i.txt
+	grep "^moose-elk$$" ../target/rv32i.txt
 	cargo run $(CARGO_FLAGS) --example rv32i guest2 | tee ../target/rv32i.txt
-	grep "^write(.*) -> hello C$$" ../target/rv32i.txt
-	grep "^exit_group(0)$$" ../target/rv32i.txt
+	grep "^hello C, argc=3$$" ../target/rv32i.txt
+	grep "^argv\[0\]=guest2$$" ../target/rv32i.txt
+	grep "^argv\[1\]=moose$$" ../target/rv32i.txt
+	grep "^argv\[2\]=elk$$" ../target/rv32i.txt
