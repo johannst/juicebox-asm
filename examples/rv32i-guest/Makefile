@@ -16,5 +16,8 @@ guest2: guest2.c
 		-target riscv32-linux-musl -mcpu=generic_rv32+zalrsc $< -lc
 	llvm-objdump -d $@
 
-run: guest
+fmt:
+	clang-format --verbose -i --style="{BasedOnStyle: llvm, IndentWidth: 4}" *.c
+
+run%: guest%
 	qemu-riscv32 -strace $<
