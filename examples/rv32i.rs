@@ -185,56 +185,51 @@ impl From<u32> for Jtype {
 #[rustfmt::skip]
 #[derive(Debug)]
 pub enum Insn {
+    // rv32i
     Lui   { rd: RegIdx, imm: i32 },
     Auipc { rd: RegIdx, imm: i32 },
-
-    Jal  { rd: RegIdx, imm: i32 },
-
-    Jalr { rd: RegIdx, rs1: RegIdx, imm: i32 },
-
-    Beq  { rs1: RegIdx, rs2: RegIdx, imm: i32 },
-    Bne  { rs1: RegIdx, rs2: RegIdx, imm: i32 },
-    Blt  { rs1: RegIdx, rs2: RegIdx, imm: i32 },
-    Bge  { rs1: RegIdx, rs2: RegIdx, imm: i32 },
-    Bltu { rs1: RegIdx, rs2: RegIdx, imm: i32 },
-    Bgeu { rs1: RegIdx, rs2: RegIdx, imm: i32 },
-
-    Lb  { rd: RegIdx, rs1: RegIdx, imm: i32 },
-    Lh  { rd: RegIdx, rs1: RegIdx, imm: i32 },
-    Lw  { rd: RegIdx, rs1: RegIdx, imm: i32 },
-    Lbu { rd: RegIdx, rs1: RegIdx, imm: i32 },
-    Lhu { rd: RegIdx, rs1: RegIdx, imm: i32 },
-
-    Sb { rs1: RegIdx, rs2: RegIdx, imm: i32 },
-    Sh { rs1: RegIdx, rs2: RegIdx, imm: i32 },
-    Sw { rs1: RegIdx, rs2: RegIdx, imm: i32 },
-
+    Jal   { rd: RegIdx, imm: i32 },
+    Jalr  { rd: RegIdx, rs1: RegIdx, imm: i32 },
+    Beq   { rs1: RegIdx, rs2: RegIdx, imm: i32 },
+    Bne   { rs1: RegIdx, rs2: RegIdx, imm: i32 },
+    Blt   { rs1: RegIdx, rs2: RegIdx, imm: i32 },
+    Bge   { rs1: RegIdx, rs2: RegIdx, imm: i32 },
+    Bltu  { rs1: RegIdx, rs2: RegIdx, imm: i32 },
+    Bgeu  { rs1: RegIdx, rs2: RegIdx, imm: i32 },
+    Lb    { rd: RegIdx, rs1: RegIdx, imm: i32 },
+    Lh    { rd: RegIdx, rs1: RegIdx, imm: i32 },
+    Lw    { rd: RegIdx, rs1: RegIdx, imm: i32 },
+    Lbu   { rd: RegIdx, rs1: RegIdx, imm: i32 },
+    Lhu   { rd: RegIdx, rs1: RegIdx, imm: i32 },
+    Sb    { rs1: RegIdx, rs2: RegIdx, imm: i32 },
+    Sh    { rs1: RegIdx, rs2: RegIdx, imm: i32 },
+    Sw    { rs1: RegIdx, rs2: RegIdx, imm: i32 },
     Addi  { rd: RegIdx, rs1: RegIdx, imm: i32 },
     Slti  { rd: RegIdx, rs1: RegIdx, imm: i32 },
     Sltiu { rd: RegIdx, rs1: RegIdx, imm: i32 },
     Xori  { rd: RegIdx, rs1: RegIdx, imm: i32 },
     Ori   { rd: RegIdx, rs1: RegIdx, imm: i32 },
     Andi  { rd: RegIdx, rs1: RegIdx, imm: i32 },
-
-    Slli { rd: RegIdx, rs1: RegIdx, shamt: i32 },
-    Srli { rd: RegIdx, rs1: RegIdx, shamt: i32 },
-    Srai { rd: RegIdx, rs1: RegIdx, shamt: i32 },
-
-    Add  { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-    Sub  { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-    Sll  { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-    Slt  { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-    Sltu { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-    Xor  { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-    Srl  { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-    Sra  { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-    Or   { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-    And  { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
-
+    Slli  { rd: RegIdx, rs1: RegIdx, shamt: i32 },
+    Srli  { rd: RegIdx, rs1: RegIdx, shamt: i32 },
+    Srai  { rd: RegIdx, rs1: RegIdx, shamt: i32 },
+    Add   { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
+    Sub   { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
+    Sll   { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
+    Slt   { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
+    Sltu  { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
+    Xor   { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
+    Srl   { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
+    Sra   { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
+    Or    { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
+    And   { rd: RegIdx, rs1: RegIdx, rs2: RegIdx },
     Fence { rd: RegIdx, rs1: RegIdx, succ: i32, pred: i32, fm: i32 },
-
     Ecall,
     Ebreak,
+
+    // rv32a - Zalrsc
+    Lr { rd: RegIdx, rs1: RegIdx, aq: bool, rl: bool },
+    Sc { rd: RegIdx, rs1: RegIdx, rs2: RegIdx, aq: bool, rl: bool },
 }
 
 /// Decode the riscv instruction bytes `insn` into an [`Insn`].
@@ -352,6 +347,18 @@ pub fn decode(insn: u32) -> Insn {
                 _ => todo!("system instruction func3={:b}", func3),
             }
         },
+        0b0101111 => {
+            let Rtype { rd, rs1, rs2, func3, func7 } = Rtype::from(insn);
+            let func5 = func7 >> 2;
+            let rl = func7 & (1 << 0) != 0;
+            let aq = func7 & (1 << 1) != 0;
+
+            match (func5, func3) {
+                (0b00010, 0b010) => Insn::Lr { rd, rs1, aq, rl },
+                (0b00011, 0b010) => Insn::Sc { rd, rs1, rs2, aq, rl },
+                _ => todo!("amo insutrction func5={:b} func3={:b}", func5, func3),
+            }
+        }
         _ => todo!("instruction=0x{:08x} op=0b{:07b}", insn, opcode),
     }
 }
@@ -802,6 +809,33 @@ impl GuestState {
             Insn::Fence { rd, rs1, succ, pred, fm } => todo!("fence rd={rd} rs1={rs1} succ={succ} pred={pred} fm={fm}"),
             Insn::Ecall =>  return Err(ExitReason::Ecall),
             Insn::Ebreak => return Err(ExitReason::Ebreak),
+            Insn::Lr { rd, rs1, .. } => {
+                // Implement LR as a simple load w/o the reservation set to
+                // implement the exclusive access. Also make the blunt
+                // assumption that sw "behaves" and does not break the exclusive
+                // access on a single thread.
+
+                let rs1 = self.read_reg(rs1);
+                assert!(rs1 % 4 == 0, "LR address misaligned exception!");
+
+                let ret = mem_read!(self, u32, rs1);
+                self.write_reg(rd, ret);
+            }
+            Insn::Sc { rd, rs1, rs2, .. } => {
+                // Implement SC as a simple store w/o the reservation set to
+                // implement the exclusive access. Also make the blunt
+                // assumption that sw "behaves" and does not break the exclusive
+                // access on a single thread.
+
+                let rs1 = self.read_reg(rs1);
+                assert!(rs1 % 4 == 0, "SC address misaligned exception!");
+
+                let rs2 = self.read_reg(rs2);
+                mem_write!(self, u32, rs1, rs2);
+
+                // Return that Sc was successful.
+                self.write_reg(rd, 0);
+            }
         }
 
         Ok(None)
@@ -1377,14 +1411,98 @@ impl GuestState {
                     emit_store_reg(&mut tb, &mut host_regs, rd, reg1);
                     free_hostreg(&mut host_regs, reg2);
                 }
+                Insn::Fence { .. } => {},
                 Insn::Ecall =>  {
                     emit_ret_imm(&mut tb, JIT_ECALL, pc + 4);
                     break 'outer;
                 }
-                Insn::Fence { .. } => {},
-                _ => {
-                    todo!("{:x?} not implemented", insn);
-                },
+                Insn::Ebreak =>  {
+                    emit_ret_imm(&mut tb, JIT_EBREAK, pc + 4);
+                    break 'outer;
+                }
+                Insn::Lr { rd, rs1, .. } => {
+                    // Implement LR as a simple load w/o the reservation set to
+                    // implement the exclusive access. Also make the blunt
+                    // assumption that sw "behaves" and does not break the exclusive
+                    // access on a single thread.
+
+                    // Effective address.
+                    let reg1 = emit_load_reg(&mut tb, &mut host_regs, rs1);
+
+                    let mut check = Label::new();
+                    let mut fault = Label::new();
+
+                    // Check if effective address is out of bounds of the guest vmem.
+                    tb.cmp(reg1, Imm32::from(self.vmem.len() as u32));
+                    tb.jb(&mut check);
+
+                    // Emit exit block for load faults.
+                    tb.bind(&mut fault);
+
+                    emit_ret_imm(&mut tb, JIT_LD_FAULT, pc + 4);
+                    tb.bind(&mut check);
+
+                    // Check memory permission bits for word (u32) and emit fault if permissions don't match.
+                    let reg2 = alloc_hostreg(&mut host_regs);
+                    tb.mov(reg2, Mem32::indirect_base_index(Reg64::r9, reg1.wider()));
+                    tb.and(reg2, Imm32::splat_u8(PROT_R));
+                    tb.cmp(reg2, Imm32::splat_u8(PROT_R));
+                    tb.jnz(&mut fault);
+                    free_hostreg(&mut host_regs, reg2);
+
+                    // Load word from guest vmem.
+                    tb.mov(reg1, Mem32::indirect_base_index(Reg64::r8, reg1.wider()));
+
+                    // Save word in register.
+                    emit_store_reg(&mut tb, &mut host_regs, rd, reg1);
+                }
+                Insn::Sc { rd, rs1, rs2, .. } => {
+                    // Implement SC as a simple store w/o the reservation set to
+                    // implement the exclusive access. Also make the blunt
+                    // assumption that sw "behaves" and does not break the exclusive
+                    // access on a single thread.
+
+                    // Effective address.
+                    let reg1 = emit_load_reg(&mut tb, &mut host_regs, rs1);
+
+                    let mut check = Label::new();
+                    let mut fault = Label::new();
+
+                    // Check if effective address is out of bounds of the guest vmem.
+                    tb.cmp(reg1, Imm32::from(self.vmem.len() as u32));
+                    tb.jb(&mut check);
+
+                    // Emit exit block for load faults.
+                    tb.bind(&mut fault);
+                    emit_ret_imm(&mut tb, JIT_ST_FAULT, pc + 4);
+                    tb.bind(&mut check);
+
+                    // Check memory permission bits for word (u32) and emit fault if permissions don't match.
+                    let reg2 = alloc_hostreg(&mut host_regs);
+                    tb.mov(reg2, Mem32::indirect_base_index(Reg64::r9, reg1.wider()));
+                    tb.and(reg2, Imm32::splat_u8(PROT_W));
+                    tb.cmp(reg2, Imm32::splat_u8(PROT_W));
+                    tb.jnz(&mut fault);
+
+                    // Check if writing to executable memory, if so then fault. No support for potentially self-modifying code.
+                    tb.mov(reg2, Mem32::indirect_base_index(Reg64::r9, reg1.wider()));
+                    tb.and(reg2, Imm32::splat_u8(PROT_X));
+                    tb.test(reg2, reg2);
+                    tb.jnz(&mut fault);
+                    free_hostreg(&mut host_regs, reg2);
+
+                    // Load word to store from guest reg.
+                    let reg2 = emit_load_reg(&mut tb, &mut host_regs, rs2);
+
+                    // Store word in guest vmem.
+                    tb.mov(Mem32::indirect_base_index(Reg64::r8, reg1.wider()), reg2);
+
+                    free_hostreg(&mut host_regs, reg2);
+                    free_hostreg(&mut host_regs, reg1);
+
+                    // Return that Sc was successful.
+                    emit_store_reg_imm(&mut tb, rd, 0);
+                }
             }
 
             // Advance to next instruction.
