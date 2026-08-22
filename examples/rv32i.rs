@@ -927,7 +927,7 @@ impl GuestState {
         tb.mov(Reg64::r9, Reg64::rdx); // Ptr to prot.
 
         // Host register available for the register allocator.
-        let mut host_regs = vec![Reg32::edx, Reg32::ecx, Reg32::esi];
+        let mut host_regs = vec![Reg32::r10d, Reg32::edx, Reg32::esi];
 
         'outer: loop {
             // -- TRANSLATION UTILS --------------------------------------------
