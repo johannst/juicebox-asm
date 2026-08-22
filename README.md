@@ -81,11 +81,14 @@ The [`examples/`](examples/) folder provides additional examples:
 - [`bf.rs`](examples/bf.rs) implements a
   [brainfuck](https://en.wikipedia.org/wiki/Brainfuck) jit compiler
   and interpreter.
-- [`rv32i.rs`](examples/rv32i.rs) implements a 32 bit RISC-V userspace emulator
-  with only the `i` extension. The example provides a jit compiler and an
-  interpreter. The guests can be compiled with `make -C examples/rv32i-guest` if
-  the required tools are installed or alternatively with the provided nix flake
-  `nix develop ./examples/rv32i-guest --command make -C examples/rv32i-guest`.
+- [`rv32i.rs`](examples/rv32i.rs) implements a 32 bit RISC-V userspace emulator,
+  with only the `i` and `Zalrsc` extensions, which is implemented as jit
+  compiler and interpreter. The emulator supports to run multi-threaded guests.
+  Different guest examples are provided in
+  [`examples/rv32i-guest`](examples/rv32i-guest), which can be compiled with
+  `make -C examples/rv32i-guest` assuming the required tools are
+  installed. Alternatively one can compile them with the provided nix flake `nix
+  develop ./examples/rv32i-guest --command make -C examples/rv32i-guest`.
 
 ## git hook for local development
 
