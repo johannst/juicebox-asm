@@ -44,10 +44,14 @@ run-examples: build-guests
 	cargo run $(CARGO_FLAGS) --example tiny_vm
 	cargo run $(CARGO_FLAGS) --example tiny_vm jit
 	cargo run $(CARGO_FLAGS) --example bf
-	cargo run $(CARGO_FLAGS) --example rv32i guest1 | tee ../target/rv32i.txt
+	cargo run $(CARGO_FLAGS) --example rv32i ../examples/rv32i-guest/guest1 | tee ../target/rv32i.txt
 	grep "^moose-elk$$" ../target/rv32i.txt
-	cargo run $(CARGO_FLAGS) --example rv32i guest2 | tee ../target/rv32i.txt
+	cargo run $(CARGO_FLAGS) --example rv32i ../examples/rv32i-guest/guest2 | tee ../target/rv32i.txt
 	grep "^hello C, argc=3$$" ../target/rv32i.txt
-	grep "^argv\[0\]=guest2$$" ../target/rv32i.txt
+	grep "^argv\[0\]=../examples/rv32i-guest/guest2$$" ../target/rv32i.txt
 	grep "^argv\[1\]=moose$$" ../target/rv32i.txt
 	grep "^argv\[2\]=elk$$" ../target/rv32i.txt
+	cargo run $(CARGO_FLAGS) --example rv32i ../examples/rv32i-guest/guest3 | tee ../target/rv32i.txt
+	grep "^thread1: th_local_val=4242$$" ../target/rv32i.txt
+	grep "^thread2 arg=thread2 some arg$$" ../target/rv32i.txt
+	grep "^main: pthread_join() -> 0x1337$$" ../target/rv32i.txt

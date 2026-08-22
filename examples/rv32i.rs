@@ -8,7 +8,8 @@
 //! interpreter and jit compiler to demonstrate the juicebox crate.
 //!
 //! The emulator only implements a very limited syscall surface, sufficient to
-//! run the example software in examples/rv32i-guest/.
+//! run the example software in examples/rv32i-guest/. However, enough to run a
+//! multi-threaded example with TLS support.
 //!
 //! It aims at simplicity rather than being highly optimized and uses unwraps
 //! throughout the implementation to crash the emulator on unexpected behavior.
@@ -22,6 +23,7 @@
 
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::str::FromStr;
 
 use juicebox_asm::insn::*;
 use juicebox_asm::Runtime;
@@ -29,10 +31,11 @@ use juicebox_asm::{Asm, Imm16, Imm32, Imm64, Imm8, Label, Mem16, Mem32, Mem8, Re
 
 // Enable tracing of different parts of the emulator (mainly for debugging).
 const ENABLE_TRACE: bool = false;
+const TRACE_FILTER: &'static str = "syscall";
 
 macro_rules! trace {
     ($tag:expr, $($arg:tt)*) => ({
-        if ENABLE_TRACE {
+        if ENABLE_TRACE && (TRACE_FILTER == "all" || TRACE_FILTER == $tag) {
             print!("{:8}: ", $tag);
             println!($($arg)*);
         }
@@ -367,12 +370,18 @@ pub fn decode(insn: u32) -> Insn {
 
 /// Register ABI name - Stack Pointer.
 pub const SP: RegIdx = 2;
+/// Register ABI name - Thread Pointer.
+pub const TP: RegIdx = 4;
 /// Register ABI name - Argument 0.
 pub const A0: RegIdx = 10;
 /// Register ABI name - Argument 1.
 pub const A1: RegIdx = 11;
 /// Register ABI name - Argument 2.
 pub const A2: RegIdx = 12;
+/// Register ABI name - Argument 3.
+pub const A3: RegIdx = 13;
+/// Register ABI name - Argument 4.
+pub const A4: RegIdx = 14;
 /// Register ABI name - Argument 7.
 pub const A7: RegIdx = 17;
 
@@ -479,7 +488,7 @@ impl GuestState {
             vmem,
             prot,
             tb_cache: HashMap::new(),
-            rt: Runtime::with_capacity(32),
+            rt: Runtime::with_capacity(64),
         }
     }
 
@@ -806,7 +815,7 @@ impl GuestState {
 
                 self.write_reg(rd, res as u32);
             }
-            Insn::Fence { rd, rs1, succ, pred, fm } => todo!("fence rd={rd} rs1={rs1} succ={succ} pred={pred} fm={fm}"),
+            Insn::Fence {..} => {},
             Insn::Ecall =>  return Err(ExitReason::Ecall),
             Insn::Ebreak => return Err(ExitReason::Ebreak),
             Insn::Lr { rd, rs1, .. } => {
@@ -1007,7 +1016,7 @@ impl GuestState {
                     let guest: &GuestState = unsafe { &*ctx };
                     let insn = guest.fetch_insn(pc);
                     let insn = decode(insn);
-                    trace!("jit", "{:08x} {:?}", guest.pc, insn);
+                    trace!("jit", "{:08x} {:?}", pc, insn);
                 }
 
                 // At this point only the global guest state is alive since the
@@ -1516,12 +1525,19 @@ impl GuestState {
     }
 }
 
-// -- CREATE GUEST -------------------------------------------------------------
+// -- GUEST UTILS --------------------------------------------------------------
 
-/// Create a rv32i guest and load the `elf` file.
-pub fn create_guest(elf: &[u8]) -> GuestState {
-    let mut state = GuestState::new(8 * 1024 * 1024);
-    match elfload::Elf::parse(elf) {
+pub struct PhdrInfo {
+    phaddr: u32,
+    phentsize: u32,
+    phnum: u32,
+}
+
+/// Load the `elf` file into the `guest` and return the entry point and
+/// information about the program header.
+pub fn load_elf(guest: &mut GuestState, elf: &[u8]) -> (u32, PhdrInfo) {
+    let mut phdr = None;
+    let entry = match elfload::Elf::parse(elf) {
         Ok(elf) => {
             // No fs support.
             assert!(!elf.has_interp());
@@ -1531,31 +1547,149 @@ pub fn create_guest(elf: &[u8]) -> GuestState {
                 elf.machine(),
                 elf.entry(),
             );
-            for l in elf.load_segments() {
-                let prot = if l.read() { PROT_R } else { 0 }
-                    | if l.write() { PROT_W } else { 0 }
-                    | if l.exec() { PROT_X } else { 0 };
-                state.map_mem(l.vaddr().try_into().unwrap(), l.bytes(), prot);
 
-                if l.zero_padding() > 0 {
-                    let addr = (l.vaddr() + l.bytes().len() as u64).try_into().unwrap();
-                    state.map_mem_zero(addr, l.zero_padding().try_into().unwrap(), prot);
+            for seg in elf.segments() {
+                match seg.typ() {
+                    elfload::SegmentType::Load => {
+                        let prot = if seg.read() { PROT_R } else { 0 }
+                            | if seg.write() { PROT_W } else { 0 }
+                            | if seg.exec() { PROT_X } else { 0 };
+                        guest.map_mem(seg.vaddr().try_into().unwrap(), seg.bytes(), prot);
+
+                        if seg.zero_padding() > 0 {
+                            let addr = (seg.vaddr() + seg.bytes().len() as u64).try_into().unwrap();
+                            guest.map_mem_zero(addr, seg.zero_padding().try_into().unwrap(), prot);
+                        }
+                    }
+                    elfload::SegmentType::Phdr => {
+                        phdr = Some(PhdrInfo {
+                            phaddr: seg.vaddr().try_into().unwrap(),
+                            phentsize: elf.phentsize().try_into().unwrap(),
+                            phnum: elf.phnum().try_into().unwrap(),
+                        });
+                    }
+                    _ => {}
                 }
             }
-            state.pc = elf.entry().try_into().unwrap();
+
+            elf.entry()
         }
         Err(e) => {
             panic!("Parsing ELF file failed with {:?}.", e);
         }
     };
 
-    state
+    (entry.try_into().unwrap(), phdr.expect("Must have PT_PHDR"))
+}
+
+/// Map zeroed out stack of `size` bytes at the end of the guest address space
+/// and return (final stack pointer, stack bottom). The stack is initialized
+/// according to the SystemV abi (Process Initialization - Stack State).
+///
+/// https://github.com/johannst/dynld/tree/main/02_process_init
+/// https://github.com/torvalds/linux/blob/c84d3e3130dfe1058cb27dc78e7ad8bd36f0545a/fs/binfmt_elf.c#L165
+pub fn setup_main_stack(
+    guest: &mut GuestState,
+    size: u32,
+    prog: &[u8],
+    phdr: PhdrInfo,
+) -> (u32, u32) {
+    // Map a zeroed out stack at the end of the guest memory.
+    let mut sp: u32 = guest.vmem.len().try_into().unwrap();
+    let stack_bottom = sp - size;
+    guest.map_mem_zero(stack_bottom, size as usize, PROT_R | PROT_W);
+
+    // Move the stack pointer down and push the bytes onto the stack. Return
+    // the stack pointer to the beginning of the pushed data.
+    macro_rules! push_bytes {
+        ($bytes:expr) => {{
+            let len: u32 = $bytes.len().try_into().expect("must fit into u32");
+            sp -= len;
+            guest.write_mem(sp, $bytes);
+            sp
+        }};
+    }
+
+    // Move the stack pointer down and push the value as u32 onto the
+    // stack. Return the stack pointer to the beginning of the pushed data.
+    macro_rules! push_ptr {
+        ($ptr:expr) => {{
+            let ptr = $ptr as u32;
+            push_bytes!(&ptr.to_le_bytes());
+        }};
+    }
+
+    // Move the stack pointer down and push the auxvec tag and value as u32 onto
+    // the stack. Return the stack pointer to the beginning of the pushed data.
+    macro_rules! push_aux {
+        ($tag:expr, $val:expr) => {{
+            let tag = $tag as u32;
+            let val = $val as u32;
+            push_bytes!(&val.to_le_bytes());
+            push_bytes!(&tag.to_le_bytes());
+        }};
+    }
+
+    // Create the following process image on the stack as defined by the
+    // SystemV abi.
+    //
+    //         +------------+ High Address
+    //         | ..         |
+    //         | ENV strs   |<-+
+    //      +->| ARG strs   |  |
+    //      |  | ..         |  |
+    //      |  +------------+  |
+    //      |  | ..         |  |
+    //      |  +------------+  |
+    //      |  | AT_NULL    |  |
+    //      |  +------------+  |
+    //      |  | AUXV       |  |
+    //      |  +------------+  |
+    //      |  | 0x0        |  |
+    //      |  +------------+  |
+    //      |  | ENVP       |--+
+    //      |  +------------+
+    //      |  | 0x0        |
+    //      |  +------------+
+    //      +--| ARGV       |
+    //         +------------+
+    //  $rsp ->| ARGC       |
+    //        +------------+ Low Address
+
+    // Push actual argv strings.
+    let arg0 = push_bytes!(prog);
+    let arg1 = push_bytes!(b"moose\0");
+    let arg2 = push_bytes!(b"elk\0");
+
+    const AT_NULL: u32 = 0;
+    const AT_PAGESZ: u32 = 6;
+    const AT_PHNUM: u32 = 5;
+    const AT_PHENT: u32 = 4;
+    const AT_PHDR: u32 = 3;
+
+    push_aux!(AT_NULL, 0u32);
+    push_aux!(AT_PAGESZ, target::PAGE_SIZE);
+    push_aux!(AT_PHNUM, phdr.phnum); // for TLS support, to find the initial TLS image
+    push_aux!(AT_PHENT, phdr.phentsize); // for TLS support, to find the initial TLS image
+    push_aux!(AT_PHDR, phdr.phaddr); // for TLS supportm  to find the initial TLS image
+
+    push_ptr!(0u32); // envp null terminator
+    push_ptr!(0u32); // argv null terminator
+    push_ptr!(arg2); // argv[2]
+    push_ptr!(arg1); // argv[1]
+    push_ptr!(arg0); // argv[0]
+    push_ptr!(3u32); // argc
+
+    (sp, stack_bottom)
 }
 
 // -- TARGET UTILITIES ---------------------------------------------------------
 
 mod target {
     type Usize = u32;
+
+    pub const PAGE_SIZE: u32 = 4096;
+    pub const STACK_SIZE: u32 = 8 * PAGE_SIZE;
 
     #[repr(C)]
     pub struct Iovec {
@@ -1587,56 +1721,361 @@ mod target {
     pub const SYS_EXIT: u32 = 93;
     pub const SYS_EXIT_GROUP: u32 = 94;
     pub const SYS_SET_TID_ADDRESS: u32 = 96;
+    pub const SYS_RT_SIGPROCMASK: u32 = 135;
+    pub const SYS_MUNMAP: u32 = 215;
+    pub const SYS_CLONE: u32 = 220;
+    pub const SYS_MMAP: u32 = 222;
+    pub const SYS_MPROTECT: u32 = 226;
+    pub const SYS_FUTEX: u32 = 422;
 }
 
 // -- SYSCALL HANDLER ----------------------------------------------------------
 
-/// Handle a guest syscall.
-fn handle_syscall(state: &mut GuestState) -> Option<()> {
-    let syscall = state.read_reg(A7);
-    let arg0 = state.read_reg(A0);
-    let arg1 = state.read_reg(A1);
-    let arg2 = state.read_reg(A2);
+/// Guest thread states.
+#[derive(Clone, Copy)]
+pub enum ThreadState {
+    /// Thread is in running state and can be scheduled.
+    Running,
 
-    match syscall {
-        target::SYS_WRITE => {
-            let data = state.slice_mem(arg1, arg2 as usize);
-            let s = std::str::from_utf8(data).unwrap();
-            trace!("syscall", "write({}, {:x}, {})", arg0, arg1, arg2);
-            print!("{}", s);
-            state.write_reg(A0, s.len() as u32);
+    /// Thread is blocked in a `FUTEX_WAIT` operation on the address.
+    FutexWait(u32),
+
+    /// Thread has exited with the exit status.
+    Exit(u32),
+}
+
+/// Guest thread context that can be saved and restored to achieve scheduling
+/// multiple guest threads on a single guest vcpu.
+pub struct ThreadCtx {
+    /// The threads guest register state.
+    regs: [u32; 32],
+
+    /// The threads guest PC.
+    pc: u32,
+
+    /// The threads current state.
+    state: ThreadState,
+
+    /// The thread id.
+    tid: Option<u32>,
+
+    /// Guest address to the CLEARTID location. If not 0, the thread zeros the
+    /// memory word and does a `FUTEX_WAKE` operation on that address when it
+    /// exits.
+    cleartid: u32,
+}
+
+impl ThreadCtx {
+    /// Create a new thread context which is in running state.
+    pub fn new() -> ThreadCtx {
+        ThreadCtx {
+            regs: [0; 32],
+            pc: 0,
+            state: ThreadState::Running,
+            tid: None,
+            cleartid: 0,
         }
-        target::SYS_WRITEV => {
-            let mut cnt = 0;
-            for v in 0..arg2 {
-                let offset = v
-                    .checked_mul(core::mem::size_of::<target::Iovec>() as u32)
-                    .unwrap();
-                let data = state.slice_mem(arg1 + offset, core::mem::size_of::<target::Iovec>());
-                let iov = target::Iovec::try_from(data).unwrap();
+    }
 
-                let data = state.slice_mem(iov.iov_base, iov.iov_len as usize);
+    /// Update guest register in the thread context.
+    pub fn write_reg(&mut self, r: RegIdx, val: u32) {
+        if r == 0 {
+            return;
+        }
+
+        let idx = r as usize;
+        debug_assert!(idx < self.regs.len());
+        self.regs[idx] = val;
+    }
+
+    /// Save the current guest state in this thread context.
+    pub fn save(&mut self, guest: &GuestState) {
+        self.regs = guest.regs;
+        self.pc = match guest.reenter_pc {
+            Some(pc) => pc,
+            None => guest.pc,
+        };
+    }
+
+    /// Restore the current thread context in the guest state.
+    pub fn restore(&self, guest: &mut GuestState) {
+        guest.regs = self.regs;
+        guest.pc = self.pc;
+        guest.reenter_pc = None;
+    }
+}
+
+/// A process context which serves as container for multiple threads and
+/// maintains shared information.
+pub struct ProcessCtx {
+    /// Available threads in the process.
+    threads: Vec<ThreadCtx>,
+
+    /// Index of the currently active thread.
+    current: usize,
+
+    /// Guest address to the next free mmap area.
+    mmap_ptr: u32,
+
+    /// Guest address to the end of the available mmap area.
+    mmap_end: u32,
+
+    /// Next TID to allocated for a new thread.
+    next_tid: u32,
+}
+
+impl ProcessCtx {
+    /// Find next runnable thread and return the index into threads vector if found.
+    pub fn find_next_runnable(&self) -> Option<usize> {
+        // Offset to start searching from.
+        let off = self.current + 1;
+        // Find next runnable thread and adjust index according to the start offset.
+        self.threads[off..]
+            .iter()
+            .chain(self.threads[..off].iter())
+            .position(|th| matches!(th.state, ThreadState::Running))
+            .map(|idx| (idx + off) % self.threads.len())
+    }
+}
+
+/// Handle a guest syscall.
+fn handle_syscall(guest: &mut GuestState, proc: &mut ProcessCtx) -> ThreadState {
+    let syscall = guest.read_reg(A7);
+    let arg0 = guest.read_reg(A0);
+    let arg1 = guest.read_reg(A1);
+    let arg2 = guest.read_reg(A2);
+    let arg3 = guest.read_reg(A3);
+    let arg4 = guest.read_reg(A4);
+
+    let tid = proc.threads[proc.current]
+        .tid
+        .expect("active thread has TID");
+
+    let futex_wake = |proc: &mut ProcessCtx, uaddr: u32| {
+        for th in &mut proc.threads {
+            if matches!(th.state, ThreadState::FutexWait(ua) if ua == uaddr) {
+                th.state = ThreadState::Running;
+            }
+        }
+    };
+
+    use target::*;
+    let (ret, state) = match syscall {
+        SYS_WRITE => {
+            trace!(
+                "syscall",
+                "[{}] write(fd={}, addr=0x{:x}, len={})",
+                tid,
+                arg0,
+                arg1,
+                arg2
+            );
+            let _fd = arg0;
+            let addr = arg1;
+            let len = arg2 as usize;
+            let data = guest.slice_mem(addr, len);
+            let s = std::str::from_utf8(data).unwrap();
+            print!("{}", s);
+            (s.len() as u32, ThreadState::Running)
+        }
+        SYS_WRITEV => {
+            trace!(
+                "syscall",
+                "[{}] writev(fd={}, iov=0x{:x}, iov_cnt={})",
+                tid,
+                arg0,
+                arg1,
+                arg2
+            );
+            let mut cnt = 0;
+            let iov_addr = arg1;
+            let iov_cnt = arg2;
+            for v in 0..iov_cnt {
+                let offset = v.checked_mul(core::mem::size_of::<Iovec>() as u32).unwrap();
+                let data = guest.slice_mem(iov_addr + offset, core::mem::size_of::<Iovec>());
+                let iov = Iovec::try_from(data).unwrap();
+
+                let data = guest.slice_mem(iov.iov_base, iov.iov_len as usize);
                 let s = std::str::from_utf8(data).unwrap();
-                trace!("syscall", "writev({}, {:x}, {})", arg0, arg1, arg2);
                 print!("{}", s);
                 cnt += s.len();
             }
-            state.write_reg(A0, cnt as u32);
+            (cnt as u32, ThreadState::Running)
         }
-        target::SYS_EXIT => {
-            trace!("syscall", "exit({})", arg0);
-            return None;
+        SYS_EXIT => {
+            trace!("syscall", "[{}] exit({})", tid, arg0);
+            let status = arg0;
+
+            // If set, zero out the CLEARTID locationd wake any futex waiters.
+            let cleartid = proc.threads[proc.current].cleartid;
+            if cleartid != 0 {
+                mem_write!(guest, u32, cleartid, 0);
+                futex_wake(proc, cleartid);
+            }
+
+            (0, ThreadState::Exit(status))
         }
-        target::SYS_EXIT_GROUP => {
-            trace!("syscall", "exit_group({})", arg0);
-            return None;
+        SYS_EXIT_GROUP => {
+            trace!("syscall", "[{}] exit_group({})", tid, arg0);
+            let status = arg0;
+            (0, ThreadState::Exit(status))
         }
-        target::SYS_IOCTL | target::SYS_SET_TID_ADDRESS => {
-            trace!("syscall", "syscall({}) ignored", syscall);
+        SYS_SET_TID_ADDRESS => {
+            trace!("syscall", "[{}] set_tid_address({:08x})", tid, arg0);
+            let tidptr = arg0;
+            proc.threads[proc.current].cleartid = tidptr;
+            (0, ThreadState::Running)
+        }
+        SYS_CLONE => {
+            trace!(
+                "syscall", "[{}] clone(flags=0x{:x}, sp=0x{:08x}, parent_tidptr=0x{:08x}, tls=0x{:08x}, child_tidptr=0x{:08x})",
+                tid, arg0, arg1, arg2, arg3, arg4
+            );
+            let flags = arg0;
+            let sp = arg1;
+            let ptidptr = arg2;
+            let tlsp = arg3;
+            let ctidptr = arg4;
+
+            const CLONE_VM: u32 = 0x100;
+            const CLONE_THREAD: u32 = 0x1_0000;
+            const CLONE_SETTLS: u32 = 0x8_0000;
+            const CLONE_PARENT_SETTID: u32 = 0x10_0000;
+            const CLONE_CHILD_CLEARTID: u32 = 0x20_0000;
+            const CLONE_CHILD_SETTID: u32 = 0x100_0000;
+
+            assert!(flags & CLONE_VM != 0);
+            assert!(flags & CLONE_THREAD != 0);
+            assert!(sp > 0);
+
+            let mut child_ctx = ThreadCtx::new();
+            child_ctx.save(guest);
+
+            // Set guest return value.
+            child_ctx.regs[A0 as usize] = 0;
+
+            // Set guest stack pointer.
+            child_ctx.regs[SP as usize] = sp;
+
+            // Set guest thread pointer.
+            if flags & CLONE_SETTLS != 0 {
+                child_ctx.regs[TP as usize] = tlsp;
+            }
+
+            // Set guest thread id.
+            let tid = proc.next_tid;
+            proc.next_tid += 1;
+            child_ctx.tid = Some(tid);
+            // Write guest tid into parent's tid location.
+            if flags & CLONE_PARENT_SETTID != 0 {
+                mem_write!(guest, u32, ptidptr, tid);
+            }
+            // Write guest tid into child's tid location.
+            if flags & CLONE_CHILD_SETTID != 0 {
+                mem_write!(guest, u32, ctidptr, tid);
+            }
+            // Store clear tid location, which is zeroed out and futex wake'ed
+            // when the thread exits.
+            if flags & CLONE_CHILD_CLEARTID != 0 {
+                child_ctx.cleartid = ctidptr;
+            }
+
+            proc.threads.push(child_ctx);
+
+            (tid, ThreadState::Running)
+        }
+        SYS_MMAP => {
+            trace!(
+                "syscall",
+                "[{}] mmap(addr=0x{:x}, len=0x{:x}, prot=0x{:x}, ...)",
+                tid,
+                arg0,
+                arg1,
+                arg2
+            );
+
+            assert!(arg0 == 0); // no fixed addr
+            assert!(arg1 % PAGE_SIZE == 0);
+            let len = arg1;
+            let prot = arg2 as u8;
+
+            const MAP_FAILED: u32 = 0xffff_ffff;
+            let ret = if proc.mmap_ptr + len > proc.mmap_end {
+                MAP_FAILED
+            } else {
+                let addr = proc.mmap_ptr;
+                proc.mmap_ptr += len;
+                guest.map_mem_zero(addr, len as usize, prot);
+                addr
+            };
+            (ret, ThreadState::Running)
+        }
+        SYS_MUNMAP => {
+            trace!(
+                "syscall",
+                "[{}] munmap(addr=0x{:x}, len=0x{:x})",
+                tid,
+                arg0,
+                arg1
+            );
+
+            assert!(arg0 % PAGE_SIZE == 0);
+            assert!(arg1 % PAGE_SIZE == 0);
+            let addr = arg0;
+            let len = arg1 as usize;
+
+            guest.set_prot(addr, len, 0);
+            (0, ThreadState::Running)
+        }
+        SYS_MPROTECT => {
+            trace!(
+                "syscall",
+                "[{}] mprotect(addr=0x{:08x}, len=0x{:x}, prot=0x{:x})",
+                tid,
+                arg0,
+                arg1,
+                arg2
+            );
+            let addr = arg0;
+            let len = arg1 as usize;
+            let prot = arg2 as u8;
+            guest.set_prot(addr, len, prot);
+            (0, ThreadState::Running)
+        }
+        SYS_FUTEX => {
+            trace!(
+                "syscall",
+                "[{}] futex(addr=0x{:08x}, op=0x{:x}, ..)",
+                tid,
+                arg0,
+                arg1
+            );
+
+            const FUTEX_WAIT: u32 = 0;
+            const FUTEX_WAKE: u32 = 1;
+            const FUTEX_CMD_MASK: u32 = 0x7f;
+
+            let uaddr = arg0;
+            let cmd = arg1 & FUTEX_CMD_MASK;
+
+            match cmd {
+                FUTEX_WAIT => (0, ThreadState::FutexWait(uaddr)),
+                FUTEX_WAKE => {
+                    futex_wake(proc, uaddr);
+                    (0, ThreadState::Running)
+                }
+                _ => todo!("unhandled futex cmd 0x{:x}", cmd),
+            }
+        }
+        SYS_IOCTL | SYS_RT_SIGPROCMASK => {
+            trace!("syscall", "[{}] syscall({}) ignored", tid, syscall);
+            (0, ThreadState::Running)
         }
         n @ _ => todo!("unimplemented syscall {}", n),
-    }
-    Some(())
+    };
+
+    guest.write_reg(A0, ret);
+    state
 }
 
 // -- MAIN ---------------------------------------------------------------------
@@ -1644,105 +2083,102 @@ fn handle_syscall(state: &mut GuestState) -> Option<()> {
 fn main() {
     // Parse command line args.
     let (elf_name, elf) = match std::env::args().skip(1).next() {
-        Some(s) if s == "guest1" => (b"guest1\0", include_bytes!("rv32i-guest/guest1").as_slice()),
-        Some(s) if s == "guest2" => (b"guest2\0", include_bytes!("rv32i-guest/guest2").as_slice()),
-        None => (b"guest1\0", include_bytes!("rv32i-guest/guest1").as_slice()),
-        Some(s) => panic!("Unsupported program name '{}'!", s),
+        Some(s) if std::fs::exists(&s).is_ok() => {
+            (std::ffi::CString::from_str(&s), std::fs::read(&s))
+        }
+        Some(s) => panic!("Guest program not found '{}'!", s),
+        None => panic!("Provide guest program as first argument!"),
     };
+    let elf = elf.expect("guest elf file not found");
+    let elf_name = elf_name.expect("guest elf path could not be converted to c str");
 
     // Create guest and load elf file into guest virtual memory.
-    let mut state = create_guest(elf);
+    let mut guest = GuestState::new(8 * 1024 * 1024);
+    let (entry, phdr) = load_elf(&mut guest, &elf);
 
-    // Map and create an initial stack.
-    let sp = {
-        // Map a zeroed out stack.
-        const STACK_SIZE: u32 = 8 * 4096;
-        let mut sp: u32 = state.vmem.len().try_into().unwrap();
-        state.map_mem_zero(sp - STACK_SIZE, STACK_SIZE as usize, PROT_R | PROT_W);
+    // Create and initialize the stack for the main thread.
+    let (sp, stack_bottom) = setup_main_stack(
+        &mut guest,
+        target::STACK_SIZE,
+        elf_name.as_bytes_with_nul(),
+        phdr,
+    );
 
-        // Move the stack pointer down and push the bytes onto the stack. Return
-        // the stack pointer to the beginning of the pushed data.
-        macro_rules! push_bytes {
-            ($bytes:expr) => {{
-                let len: u32 = $bytes.len().try_into().expect("must fit into u32");
-                sp -= len;
-                state.write_mem(sp, $bytes);
-                sp
-            }};
+    // Initialize a thread context for the main thread.
+    let mut main_thread = ThreadCtx::new();
+    main_thread.write_reg(SP, sp);
+    main_thread.pc = entry;
+    main_thread.tid = Some(1);
+
+    // Initialize process context.
+    let mut proc = {
+        const MMAP_PAGES: u32 = 1024;
+        let mmap_end: u32 = stack_bottom - target::PAGE_SIZE /* keep one guard page*/;
+        let mmap_ptr: u32 = mmap_end - MMAP_PAGES * target::PAGE_SIZE;
+        ProcessCtx {
+            threads: vec![main_thread],
+            current: usize::MAX,
+            mmap_ptr,
+            mmap_end,
+            next_tid: 2,
         }
-
-        // Move the stack pointer down and push the value as u32 onto the
-        // stack. Return the stack pointer to the beginning of the pushed data.
-        macro_rules! push_ptr {
-            ($ptr:expr) => {{
-                let ptr_val = $ptr as u32;
-                push_bytes!(&ptr_val.to_le_bytes());
-            }};
-        }
-
-        // Create the following process image on the stack as defined by the
-        // SystemV abi.
-        //
-        //         +------------+ High Address
-        //         | ..         |
-        //         | ENV strs   |<-+
-        //      +->| ARG strs   |  |
-        //      |  | ..         |  |
-        //      |  +------------+  |
-        //      |  | ..         |  |
-        //      |  +------------+  |
-        //      |  | AT_NULL    |  |
-        //      |  +------------+  |
-        //      |  | AUXV       |  |
-        //      |  +------------+  |
-        //      |  | 0x0        |  |
-        //      |  +------------+  |
-        //      |  | ENVP       |--+
-        //      |  +------------+
-        //      |  | 0x0        |
-        //      |  +------------+
-        //      +--| ARGV       |
-        //         +------------+
-        //  $rsp ->| ARGC       |
-        //        +------------+ Low Address
-
-        // Push actual argv strings.
-        let arg0 = push_bytes!(elf_name);
-        let arg1 = push_bytes!(b"moose\0");
-        let arg2 = push_bytes!(b"elk\0");
-
-        push_ptr!(0u32); // auxv | AT_NULL val
-        push_ptr!(0u32); // auxv | AT_NULL tag
-        push_ptr!(0u32); // envp null terminator
-        push_ptr!(0u32); // argv null terminator
-        push_ptr!(arg2); // argv[2]
-        push_ptr!(arg1); // argv[1]
-        push_ptr!(arg0); // argv[0]
-        push_ptr!(3u32); // argc
-
-        sp
     };
 
-    // Initialize stack pointer register.
-    state.write_reg(SP, sp);
-
     // Run the guest, and toggle jit and interpreter mode after each VM exit.
-    let mut is_jit = true;
+    let mut is_jit: bool = true;
+
+    // Track the next schedulee.
+    let mut next = 0;
     'outer: loop {
+        assert!(matches!(proc.threads[next].state, ThreadState::Running));
+
+        // Restore thread context on thread switch.
+        if proc.current != next {
+            proc.current = next;
+            proc.threads[proc.current].restore(&mut guest);
+        }
+
         let ret = if is_jit {
-            state.jit()
+            guest.jit()
         } else {
-            state.interpret()
+            guest.interpret()
         };
         is_jit = !is_jit;
 
         match ret {
             ExitReason::Ecall => {
-                if matches!(handle_syscall(&mut state), None) {
-                    break 'outer;
-                }
+                proc.threads[proc.current].state = handle_syscall(&mut guest, &mut proc);
+
+                match proc.threads[proc.current].state {
+                    ThreadState::Running => {}
+                    ThreadState::FutexWait(_) => {
+                        // Thread is blocked, schedule.
+                        next = proc
+                            .find_next_runnable()
+                            .expect("deadlock, no runnable thread");
+                        assert!(next != proc.current);
+                    }
+                    ThreadState::Exit(_) => {
+                        // Thread is exited, schedule.
+                        next = match proc.find_next_runnable() {
+                            Some(n) => n,
+                            None => break 'outer,
+                        };
+                    }
+                };
             }
             r @ _ => todo!("unhandled exit reason {:?}", r),
         }
+
+        // Save thread context on thread switch.
+        if proc.current != next {
+            proc.threads[proc.current].save(&guest);
+        }
     }
+
+    let all_exited = proc
+        .threads
+        .iter()
+        .all(|th| matches!(th.state, ThreadState::Exit(_)));
+    assert!(all_exited, "Not all threads exited!")
 }
