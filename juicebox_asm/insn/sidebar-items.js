@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"trait":["Add","Call","Cmovnz","Cmovz","Cmp","Dec","Inc","Jmp","Jnz","Jz","Mov","Pop","Push","Sub","Test","Xor"]};
+window.SIDEBAR_ITEMS = {"trait":["Add","And","Call","Cmovnz","Cmovz","Cmp","Dec","Inc","Jae","Jb","Jge","Jl","Jmp","Jnz","Jz","Lea","Mov","Movsx","Movzx","Or","Pop","Push","Sar","Setb","Setl","Shl","Shr","Sub","Test","Xor"]};
